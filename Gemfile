@@ -20,5 +20,4 @@ group :jekyll_plugins do
     gem "jekyll-paginate", "~> 1.1.0"
     #gem 'wdm', '>= 0.1.0'
     gem 'listen', '~> 3.1', '>= 3.1.5'
-    gem 'jekyll-gravatar'
 end
