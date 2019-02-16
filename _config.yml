@@ -3,7 +3,7 @@ name: Scott Cranton
 job_title: Customer Success
 email: scott@cranton.com
 description: I lead Customer Success at Solo.io. I enjoy hacking tech, and writing about it.
-avatar: /scottcranton.png
+#avatar: /scottcranton.png
 favicon: /favicon.ico
 twitter_handler: scottcranton
 analytics_code: UA-134609715-1
@@ -56,7 +56,7 @@ defaults:
       comments: "true"
 
 # Serving
-url: "https://scranton.github.io/"
+url: "https://scranton.github.io"
 baseurl: ""
 
 # Includes
@@ -78,3 +78,7 @@ excerpt_separator: <!--more-->
 sass:
   sass_dir: assets/partials
   style: compressed
+
+plugins:
+  - jekyll-sitemap
+  - jekyll-avatar
