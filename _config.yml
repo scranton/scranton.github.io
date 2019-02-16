@@ -56,7 +56,7 @@ defaults:
       comments: "true"
 
 # Serving
-url: "https://scott.cranton.com"
+url: "http://scott.cranton.com"
 baseurl: ""
 
 # Includes
