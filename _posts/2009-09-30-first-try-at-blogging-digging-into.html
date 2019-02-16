@@ -1,0 +1,13 @@
+---
+layout: post
+title: First Try at Blogging - Digging into ServiceMix and Camel Code
+date: '2009-09-30T10:38:00.000-04:00'
+author: Scott Cranton
+tags: 
+- Camel
+modified_time: '2009-09-30T10:38:32.352-04:00'
+blogger_id: tag:blogger.com,1999:blog-6291014512017196310.post-7240357053438367788
+blogger_orig_url: http://scott.cranton.com/2009/09/first-try-at-blogging-digging-into.html
+---
+
+Well, here's the classic "Its my first blog post" statement, so let's see how this goes :-)<br /><br />I've been working with ServiceMix and Camel since Feb 2009 when I joined the Progress FUSE technical field. Now I'm looking to take the next step and start digging much deeper into the code. So I thought this experience of digging into the code would also be a code this to start blogging about.<br /><br />The first thing I was going to look into is how some of the ServiceMix components handle messages with or without a JBI Message wrapper. Specifically, the CXF BC and SE components, by default, expect an XML message to be wrapped. The challenge is that messages sent from Camel via the JBI endpoint do not / can not be wrapped automatically (i.e. I'd need to code in the wrapping myself). Putting in a simple XSLT transform to wrap my XML messages in the minimal JBI message elements isn't a big deal, but its something I'd expect Camel to do for me (I am a lazy developer at heart :-) ).<br /><br />Right now I'm getting my development environment setup so I'm working off the ServiceMix and Camel Subversion repos. I've also taken this opportunity to setup the Nexus Open Source version to help better manage interactions with the various Maven repos, and Nexus does appear to help speed up a full ServiceMix build.<br /><br />Next steps are to find the JBI wrapper code in the CXF components to understand how they work. A big question for me is, it looks like the JBI Message wrapper is optional in the JBI spec, so shouldn't the servicemix-cxf components just handle the presence, or not, of the JBI wrapper automatically versus, by default, requiring other JBI components to do it? I understand that I can disable the JBI wrapper by setting useJBIWrapper=false on the CXF components, its just annoying that I have to disable something for many / most other components to interact with it.
