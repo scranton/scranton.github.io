@@ -274,7 +274,149 @@ Here are the quick setup instructions.
    replicaset.apps/gloo-77f695fbb9           1         1         1       13s
    ```
 
-## Routing
+## Upstreams
+
+Before we get into routing, let's talk a little about the concept of `Upstreams`. Upstreams are the services that Gloo has discovered automatically. Let's look at the upstreams that Gloo has discovered in our Kubernetes cluster.
+
+```shell
+glooctl get upstreams
+```
+
+You may see some different entries than what follows. It depends on your Kubernetes cluster, and what is running currently.
+
+```shell
++-------------------------------+------------+----------+------------------------------+
+|           UPSTREAM            |    TYPE    |  STATUS  |           DETAILS            |
++-------------------------------+------------+----------+------------------------------+
+| default-kubernetes-443        | Kubernetes | Accepted | svc name:      kubernetes    |
+|                               |            |          | svc namespace: default       |
+|                               |            |          | port:          443           |
+|                               |            |          |                              |
+| default-petstore-v1-8080      | Kubernetes | Accepted | svc name:      petstore-v1   |
+|                               |            |          | svc namespace: default       |
+|                               |            |          | port:          8080          |
+|                               |            |          | REST service:                |
+|                               |            |          | functions:                   |
+|                               |            |          | - addPet                     |
+|                               |            |          | - deletePet                  |
+|                               |            |          | - findPetById                |
+|                               |            |          | - findPets                   |
+|                               |            |          |                              |
+| default-petstore-v2-8080      | Kubernetes | Accepted | svc name:      petstore-v2   |
+|                               |            |          | svc namespace: default       |
+|                               |            |          | port:          8080          |
+|                               |            |          | REST service:                |
+|                               |            |          | functions:                   |
+|                               |            |          | - addPet                     |
+|                               |            |          | - deletePet                  |
+|                               |            |          | - findPetById                |
+|                               |            |          | - findPets                   |
+|                               |            |          |                              |
+| gloo-system-gateway-proxy-443 | Kubernetes | Accepted | svc name:      gateway-proxy |
+|                               |            |          | svc namespace: gloo-system   |
+|                               |            |          | port:          443           |
+|                               |            |          |                              |
+| gloo-system-gateway-proxy-80  | Kubernetes | Accepted | svc name:      gateway-proxy |
+|                               |            |          | svc namespace: gloo-system   |
+|                               |            |          | port:          80            |
+|                               |            |          |                              |
+| gloo-system-gloo-9977         | Kubernetes | Accepted | svc name:      gloo          |
+|                               |            |          | svc namespace: gloo-system   |
+|                               |            |          | port:          9977          |
+|                               |            |          |                              |
+| kube-system-kube-dns-53       | Kubernetes | Accepted | svc name:      kube-dns      |
+|                               |            |          | svc namespace: kube-system   |
+|                               |            |          | port:          53            |
+|                               |            |          |                              |
++-------------------------------+------------+----------+------------------------------+
+```
+
+Notice that our 2 petstore services - `default-petstore-v1-8080` and `default-petstore-v2-8080` are different in
+that their details are also listing 4 REST service functions. This is because Gloo can autodetect OpenAPI / Swagger
+definations. This allows Gloo to route to individual functions versus what most traditional API Gateways do in
+only letting you route to host:port granular services. Let's see that in action.
+
+Let's look a little closer. The `glooctl` command let's us output the full details in yaml or json.
+
+```shell
+glooctl get upstream default-petstore-v1-8080 -o yaml
+```
+
+```yaml
+---
+discoveryMetadata: {}
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"labels":{"sevice":"petstore-v1"},"name":"petstore-v1","namespace":"default"},"spec":{"ports":[{"name":"http","port":8080,"protocol":"TCP"}],"selector":{"app":"petstore-v1"}}}
+  labels:
+    discovered_by: kubernetesplugin
+    sevice: petstore-v1
+  name: default-petstore-v1-8080
+  namespace: gloo-system
+  resourceVersion: "129285"
+status:
+  reportedBy: gloo
+  state: Accepted
+upstreamSpec:
+  kube:
+    selector:
+      app: petstore-v1
+    serviceName: petstore-v1
+    serviceNamespace: default
+    servicePort: 8080
+    serviceSpec:
+      rest:
+        swaggerInfo:
+          url: http://petstore-v1.default.svc.cluster.local:8080/swagger.json
+        transformations:
+          addPet:
+            body:
+              text: '{"id": {{ default(id, "") }},"name": "{{ default(name, "")}}","tag":
+                "{{ default(tag, "")}}"}'
+            headers:
+              :method:
+                text: POST
+              :path:
+                text: /api/pets
+              content-type:
+                text: application/json
+          deletePet:
+            headers:
+              :method:
+                text: DELETE
+              :path:
+                text: /api/pets/{{ default(id, "") }}
+              content-type:
+                text: application/json
+          findPetById:
+            body: {}
+            headers:
+              :method:
+                text: GET
+              :path:
+                text: /api/pets/{{ default(id, "") }}
+              content-length:
+                text: "0"
+              content-type: {}
+              transfer-encoding: {}
+          findPets:
+            body: {}
+            headers:
+              :method:
+                text: GET
+              :path:
+                text: /api/pets?tags={{default(tags, "")}}&limit={{default(limit,
+                  "")}}
+              content-length:
+                text: "0"
+              content-type: {}
+              transfer-encoding: {}
+```
+
+For example, we see that the `findPets` REST function is looking for requests on `/api/pets`, and `findPetsById` is looking for requests on `/api/pets/{id}` where `{id}` is the id number of the single pet who's details are to be returned.
+
+## Simple Routing
 
 Gloo acts like an [Kubernetes Ingress](https://kubernetes.io/docs/concepts/services-networking/ingress/), which means it
 can allow requests from external to the Kubernetes cluster to access services running inside the cluster. Gloo uses a
@@ -286,7 +428,7 @@ fashion (versus imperative commands).
 
 1. Setup `Virtual Service`. This gives us a place to setup a set of related routes. This won't do much till we create some routes in the next steps.
 
-   ```
+   ```shell
    glooctl create virtualservice --name coalmine
    ```
 
@@ -305,3 +447,169 @@ fashion (versus imperative commands).
    ```
 
 1. Create a route for all traffic to go to version 1 of our service.
+
+   ```shell
+   glooctl add route \
+      --name coalmine \
+      --path-prefix /petstore \
+      --dest-name default-petstore-v1-8080 \
+      --prefix-rewrite /api/pets/
+   ```
+
+   This sets up a simple ingress route so that all requests going to the Gloo Proxy `/` URL are redirected to 
+   the `default-petstore-v1-8080` service `/api/pets`. Let's test it.
+
+   To get the Gloo proxy host and port number (remember that Gloo is acting like a Kubernetes Ingress), we need to
+   call `glooctl proxy url`. Then let's call the route path.
+
+   ```shell
+   export PROXY_URL=$(glooctl proxy url)
+   curl ${PROXY_URL}/petstore
+   ```
+
+   And we should see the same results as when we called the port forwarded service.
+
+   ```json
+   [{"id":1,"name":"Dog","status":"available"},{"id":2,"name":"Cat","status":"pending"}]
+   ```
+
+## Function Routing
+
+Wouldn't it be better if we could just route to the named REST function versus having to know the specifics of
+the query path (i.e. `/api/pets`) the service is expecting? Gloo can help us with that. Let's setup a route to
+`findPets` REST function.
+
+```shell
+glooctl add route \
+   --name coalmine \
+   --path-prefix /findPets \
+   --dest-name default-petstore-v1-8080 \
+   --rest-function-name findPets
+```
+
+And test it.
+
+```shell
+curl ${PROXY_URL}/findPets
+```
+
+We should see the same results as the `/petstore`.
+
+If we want to route to a function with parameters, we can do that too.
+
+```shell
+glooctl add route \
+   --name coalmine \
+   --path-prefix /findPetWithId/ \
+   --dest-name default-petstore-v1-8080 \
+   --rest-function-name findPetById \
+   --rest-parameters ':path=/findPetWithId/{id}'
+```
+
+Let's look up the details for the pet with id 1
+
+```shell
+curl ${PROXU_URL}/findPetWithId/1
+```
+
+```json
+{"id":1,"name":"Dog","status":"available"}
+```
+
+## Canary Routing
+
+Now let's deploy a version 2 of our service, and let's setup a canary route for the `findPets` function. That is,
+by default we'll route to version 1 of the function, and if there is a request header `x-canary:true` set, we'll route that request to version 2 of our service.
+
+```shell
+glooctl add route \
+   --name coalmine \
+   --path-prefix /findPets \
+   --dest-name default-petstore-v2-8080 \
+   --rest-function-name findPets \
+   --header x-canary=true
+```
+
+Default routing should go to petstore version 1, and return only 2 pets.
+
+```shell
+curl ${PROXY_URL}/findPets
+```
+
+```json
+[{"id":1,"name":"Dog","status":"available"},{"id":2,"name":"Cat","status":"pending"}]
+```
+
+If we make a request with the `x-canary:true` set, it should route to petstore version 2, and return 3 pets.
+
+```shell
+curl -H "x-canary:true" ${PROXY_URL}/findPets
+```
+
+```json
+[{"id":1,"name":"Dog","status":"v2"},{"id":2,"name":"Cat","status":"v2"},{"id":3,"name":"Parrot","status":"v2"}]
+```
+
+Just to verify, let's set the header to a different value, e.g. `x-canary:false` to see that it routes to petstore v1
+
+```shell
+curl -H "x-canary:false" ${PROXY_URL}/findPets
+```
+
+```json
+[{"id":1,"name":"Dog","status":"available"},{"id":2,"name":"Cat","status":"pending"}]
+```
+
+Once we're feeling good about version 2, we can make the default call to `/findPets` go to version 2. The easiest
+way to make this change is through applying a YAML file.
+
+```yaml
+cat <<EOF | kubectl apply -f -
+apiVersion: gateway.solo.io/v1
+kind: VirtualService
+metadata:
+  name: coalmine
+  namespace: gloo-system
+spec:
+  displayName: coalmine
+  virtualHost:
+    domains:
+    - '*'
+    name: gloo-system.coalmine
+    routes:
+    - matcher:
+        prefix: /findPetWithId/
+      routeAction:
+        single:
+          destinationSpec:
+            rest:
+              functionName: findPetById
+              parameters:
+                headers:
+                  :path: /findPetWithId/{id}
+          upstream:
+            name: default-petstore-v1-8080
+            namespace: gloo-system
+    - matcher:
+        exact: /findPets
+      routeAction:
+        single:
+          destinationSpec:
+            rest:
+              functionName: findPets
+              parameters: {}
+          upstream:
+            name: default-petstore-v2-8080
+            namespace: gloo-system
+    - matcher:
+        prefix: /petstore
+      routeAction:
+        single:
+          upstream:
+            name: default-petstore-v1-8080
+            namespace: gloo-system
+      routePlugins:
+        prefixRewrite:
+          prefixRewrite: /api/pets/
+EOF
+```
