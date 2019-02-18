@@ -9,13 +9,13 @@ date: 2019-02-17 09:29
     <figcaption>Photo by <a href="https://unsplash.com/@zabit" target="_blank">Zab Consulting</a>.</figcaption>
 </figure>
 
-This post walk thru how to use the open source [Solo.io](https://solo.io) [Gloo](https://github.com/solo-io/gloo) project
-to do a Canary release of a new version of a function. Gloo is a microservices gateway that gives users a number of
-benefits including sophisticated function level routing, and deep service discovery with introspection of OpenAPI (Swagger)
-definations. This post will show a simple example of Gloo discovering 2 different deployments of a service, and setting
-up some routes. Initial route will use the presence of a request header `x-canary:true` to influence runtime routing to
+This post walks through how to use the open-source [Solo.io](https://solo.io) [Gloo](https://github.com/solo-io/gloo) project
+to do a Canary release of a new version of a function. [Gloo is a microservices gateway](https://medium.com/solo-io/announcing-gloo-the-function-gateway-3f0860ef6600) that gives users a number of
+benefits including sophisticated function-level routing, and deep service discovery with introspection of OpenAPI (Swagger)
+definitions, gRPC reflection, Lambda discovery and more. This post will show a simple example of Gloo discovering 2 different deployments of a service, and setting
+up some routing rules. Initial route will use the presence of a request header `x-canary:true` to influence runtime routing to
 either version 1 or version 2 of our service, and then assuming we're happy with our new version, we update the route
-so all requests now go to version 2 of our service. All without changing or even redploying our 2 services. But first,
+so all requests now go to version 2 of our service. All without changing or even redeploying our 2 services. But first,
 let's set some context...
 
 ## Background
@@ -33,19 +33,18 @@ let's set some context...
 </figure>
 
 The idea of a Canary release is that no matter how much testing you do on a new implementation, until you deploy it into
-your production environment you can't be postive everything will work as expected. So having a way to release a new
+your production environment you can't be positive everything will work as expected. So having a way to release a new
 version into production concurrently with the existing version(s) with some way to route traffic can be helpful. Ideally,
-we'd like to route most traffic to existing, known to work version, and have a way for some requests go to the new version.
-Once you're feeling comfordable that your new version is working like you expect, then and only then, do you start
-routing more/all requests to the new version, and then eventually decommision the original service.
+we'd like to route most traffic to an existing, known-to-work version, and have a way for some requests go to the new version.
+Once you're feeling comfortable that your new version is working like you expect, then and only then, do you start
+routing more/all requests to the new version, and then eventually decommission the original service.
 
-Being able to change request routes **without** needing to change or redploy your code, I think, is very helpful in
+Being able to change request routing rules **without** needing to change or redeploy your code, I think, is very helpful in
 building confidence that your code is ready for production. That is, if you need to change your code or use a code based
 feature flag, then your exercising different code paths and/or changing configuration settings. I feel its better if you
-can deploy your service, code and configurations, all ready for production, and use an external mechansim to manage
-request routing.
+can deploy your service, code and configurations, all ready for production, and use an external mechanism to manage request routing.
 
-Gloo uses [Evnoy](https://www.envoyproxy.io/), which is a super high performance service proxy, to do the request routing.
+Gloo uses [Envoy](https://www.envoyproxy.io/), which is a super high performance service proxy, to do the request routing.
 In this example, we'll use a request header to influence the routing, though we could also use other variables like the
 IP range of the requestor to drive routing decisions. That is, if requests are coming from specific test machines we can
 route them to our new version. Lots more information on how Gloo and Envoy works can be found on the [Solo.io](https://solo.io)
@@ -420,13 +419,13 @@ For example, we see that the `findPets` REST function is looking for requests on
 
 Gloo acts like an [Kubernetes Ingress](https://kubernetes.io/docs/concepts/services-networking/ingress/), which means it
 can allow requests from external to the Kubernetes cluster to access services running inside the cluster. Gloo uses a
-concept called `Virtual Service` to setup routes to Kubernetes hosted services.
+concept called `VirtualService` to setup routes to Kubernetes-hosted services.
 
-This post will show you how to configure Gloo using the commandline tools, and I'll explain a little of what's happening
+This post will show you how to configure Gloo using the command-line tools, and I'll explain a little of what's happening
 with each command. I'll also include the YAML at the end of each step if you'd prefer to work in a purely declarative
 fashion (versus imperative commands).
 
-1. Setup `Virtual Service`. This gives us a place to setup a set of related routes. This won't do much till we create some routes in the next steps.
+1. Setup `VirtualService`. This gives us a place to define a set of related routes. This won't do much till we create some routes in the next steps.
 
    ```shell
    glooctl create virtualservice --name coalmine
@@ -495,7 +494,7 @@ curl ${PROXY_URL}/findPets
 
 We should see the same results as the `/petstore`.
 
-If we want to route to a function with parameters, we can do that too.
+If we want to route to a function with parameters, we can do that too by telling Gloo how to find the `id` parameter. In this case, it happens to be a path parameter, but it could come from other parts of the request:
 
 ```shell
 glooctl add route \
@@ -519,7 +518,7 @@ curl ${PROXU_URL}/findPetWithId/1
 ## Canary Routing
 
 Now let's deploy a version 2 of our service, and let's setup a canary route for the `findPets` function. That is,
-by default we'll route to version 1 of the function, and if there is a request header `x-canary:true` set, we'll route that request to version 2 of our service.
+by default we'll route to version 1 of the function, and if there is a request header `x-canary:true` set, we'll route that request to version 2 of our function.
 
 ```shell
 glooctl add route \
@@ -613,3 +612,7 @@ spec:
           prefixRewrite: /api/pets/
 EOF
 ```
+
+## Conclustion
+
+I'd write a synposis here, a call to action, and maybe some breadcrumbs for what your next blog might be and a "stay tuned, follow me on twitter, and here's a link to my RSS feed for blog, etc"
