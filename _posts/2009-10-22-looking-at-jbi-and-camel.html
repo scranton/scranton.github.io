@@ -9,6 +9,7 @@ tags:
 modified_time: '2009-10-23T10:18:08.956-04:00'
 blogger_id: tag:blogger.com,1999:blog-6291014512017196310.post-9100975889757559758
 blogger_orig_url: http://scott.cranton.com/2009/10/looking-at-jbi-and-camel.html
+comments: false
 ---
 
 I've been distracted by doing a couple of <a href="http://fusesource.com/resources/video-archived-webinars/">webinars on Camel</a>&nbsp;so I haven't had a lot of time to spend on digging into my <a href="http://scottcranton.blogspot.com/2009/09/first-try-at-blogging-digging-into.html">original blog post</a>&nbsp;on Camel, CXF, and ServiceMix / JBI working well together. From looking at the JBI spec it seems that for WSDL 1.x, JBI does 'mandate' using the JBI XML wrapper. My sense is that since I'm having the CXF components work with / generate from a WSDL 1.1, it seems reasonable that would wrap the XML message. The other ServiceMix components are magically generating the NMR / WSDL binding for me so apparently its up for debate if the must use the JBI wrapper element - if they generate WSDL 2.0, the wrapper element is optional.<br /><br />From looking at the JMS and HTTP components, its clear that there is a framework in place using Camel interceptors to add the JBI or SOAP envelopes when needed.<br /><br />At this point, I'm going to let the dust settle with Camel 2.0, ServiceMix 4.x, etc. before I dig in more on how to get Camel's jbi endpoint to do the right thing with that jbi message wrapper….
