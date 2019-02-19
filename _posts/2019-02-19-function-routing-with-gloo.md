@@ -1,16 +1,18 @@
 ---
 layout: post
 title: Routing with Gloo Function Gateway
-date: 2019-02-18 09:29
+date: 2019-02-19T14:26:47Z
+tags:
+- Gloo
 ---
 
 <figure class="aligncenter">
-    <img src="https://images.unsplash.com/photo-1495592822108-9e6261896da8?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=2250&q=80" />
+    <img src="https://images.unsplash.com/photo-1495592822108-9e6261896da8?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=2250&q=80"/>
     <figcaption>Photo by <a href="https://unsplash.com/@pietrozj" target="_blank">Pietro Jeng</a>.</figcaption>
 </figure>
 
 This post introduces you to how to use the open source [Solo.io](https://solo.io) [Gloo](https://github.com/solo-io/gloo)
-project to help us to route traffic to our Kubernetes hosted services. [Gloo is a function gateway](https://medium.com/solo-io/announcing-gloo-the-function-gateway-3f0860ef6600) that gives users a number of benefits including sophisticated
+project to help you to route traffic to your Kubernetes hosted services. [Gloo is a function gateway](https://medium.com/solo-io/announcing-gloo-the-function-gateway-3f0860ef6600) that gives users a number of benefits including sophisticated
 function level routing, and deep service discovery with introspection of OpenAPI (Swagger) definitions, gRPC reflection,
 Lambda discovery and more. This post will start with a simple example of Gloo discovering and routing requests to a
 service that exposes REST functions. Later posts will build on this initial example to do highlight ever more complex
@@ -28,7 +30,7 @@ setup and configured correctly for your Kubernetes installation.
 
 1. Let's start by installing an example service that exposes 4 REST functions. This service is based on the
 [go-swagger petstore example](https://github.com/go-swagger/go-swagger/tree/master/examples/2.0/petstore). I'm including
-YAML contents within this post for ease.
+the Kubernetes configuration YAML within this post for ease.
 
    ```yaml
    cat <<EOF | kubectl apply -f -
@@ -40,7 +42,7 @@ YAML contents within this post for ease.
      name: petstore-v1
      namespace: default
      labels:
-       sevice: petstore-v1
+       app: petstore-v1
    spec:
      type: ClusterIP
      ports:
@@ -51,7 +53,7 @@ YAML contents within this post for ease.
      selector:
        app: petstore-v1
    ---
-   apiVersion: extensions/v1beta1
+   apiVersion: apps/v1
    kind: Deployment
    metadata:
      name: petstore-v1
@@ -59,77 +61,78 @@ YAML contents within this post for ease.
      labels:
        app: petstore-v1
    spec:
+     replicas: 1
      selector:
        matchLabels:
          app: petstore-v1
-     replicas: 1
      template:
        metadata:
          labels:
            app: petstore-v1
        spec:
          containers:
-         - image: scottcranton/petstore:v1
-           name: petstore-v1
+         - name: petstore-v1
+           image: scottcranton/petstore:v1
            ports:
            - containerPort: 8080
    EOF
    ```
 
-   We've installing this service into the `default` namespace, so we can look there to see if there installed correctly.
+   We've installing this service into the `default` namespace, so we can look there to see if it's installed correctly.
 
    ```shell
    kubectl get all --namespace default
    ```
 
    ```shell
-   NAME                               READY   STATUS    RESTARTS   AGE
-   pod/petstore-v1-7876bd5bf8-skn5f   1/1     Running   0          6m45s
+   NAME                              READY   STATUS    RESTARTS   AGE
+   pod/petstore-v1-986747fc8-mx2nl   1/1     Running   0          10s
 
    NAME                  TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)    AGE
-   service/kubernetes    ClusterIP   10.96.0.1        <none>        443/TCP    2d20h
-   service/petstore-v1   ClusterIP   10.97.195.104    <none>        8080/TCP   6m45s
+   service/kubernetes    ClusterIP   10.96.0.1        <none>        443/TCP    11h
+   service/petstore-v1   ClusterIP   10.100.222.255   <none>        8080/TCP   10s
 
    NAME                          READY   UP-TO-DATE   AVAILABLE   AGE
-   deployment.apps/petstore-v1   1/1     1            1           6m45s
+   deployment.apps/petstore-v1   1/1     1            1           10s
 
-   NAME                                     DESIRED   CURRENT   READY   AGE
-   replicaset.apps/petstore-v1-7876bd5bf8   1         1         1       6m45s
+   NAME                                    DESIRED   CURRENT   READY   AGE
+   replicaset.apps/petstore-v1-986747fc8   1         1         1       10s
    ```
 
 1. Let's test our service to make sure it installed correctly. This service is setup to expose on port `8080`, and will
 return the list of all pets for `GET` requests on the query path `/api/pets`. The easiest way to test is to
-`port-forward` the pod so we can access it locally.
+`port-forward` the pod so we can access it locally. We'll need the pod name for the port forwarding. Make sure the pod
+name matches the ones from your system. This will forward port 8080 from the service running in your Kubernetes
+installation to your local machine, i.e. `localhost:8080`.
+
+   * Get the pod names for your installation
 
    ```shell
    kubectl get pods --namespace default
    ```
 
    ```shell
-   NAME                           READY   STATUS    RESTARTS   AGE
-   petstore-v1-7876bd5bf8-skn5f   1/1     Running   0          13m
+   NAME                          READY   STATUS    RESTARTS   AGE
+   petstore-v1-986747fc8-mx2nl   1/1     Running   0          31s
    ```
 
-   We'll need the pod name for the port forwarding. Make sure the pod name matches the ones from your system. This will
-   forward port 8080 from the service running in your Kubernetes installation to your local machine, i.e. `localhost:8080`.
+   * Setup the port forwarding
 
    ```shell
-   kubectl port-forward petstore-v1-7876bd5bf8-skn5f 8080:8080
+   kubectl port-forward petstore-v1-986747fc8-mx2nl 8080:8080
    ```
 
-   In a separate terminal, run the following.
+   * In a separate terminal, run the following. The petstore function should return 2 pets: Dog and Cat.
 
    ```shell
    curl localhost:8080/api/pets
    ```
 
-   And hopefully you will see the following. Version 1 of our petstore should only have 2 pets: a Dog, and a Cat.
-
    ```json
    [{"id":1,"name":"Dog","status":"available"},{"id":2,"name":"Cat","status":"pending"}]
    ```
 
-   You can also get the Swagger spec as well.
+   * You can also get the Swagger spec as well.
 
    ```shell
    curl localhost:8080/swagger.json
@@ -144,14 +147,12 @@ Here are the quick setup instructions.
 
    Setup the `glooctl` command line tool. This makes installation, upgrade, and operations of Gloo easier. I encourage
    you all to look at the [install script](https://run.solo.io/gloo/install) *before* running some random shell script
-   off the Internet.
+   off the Internet. This sets up `glooctl` in your `$HOME/.gloo/bin` directory, and the installation will have you add
+   that path to your `PATH`.
 
    ```shell
    curl -sL https://run.solo.io/gloo/install | sh
    ```
-
-   This sets up `glooctl` in your `$HOME/.gloo/bin` directory, and the installation will have you add that path to your
-   `PATH`.
 
 1. Now let's install Gloo into your Kubernetes installation.
 
@@ -170,26 +171,26 @@ Here are the quick setup instructions.
 
    ```shell
    NAME                                READY   STATUS    RESTARTS   AGE
-   pod/discovery-7d87b5c69d-t45mr      1/1     Running   0          13s
-   pod/gateway-7459bf6bcc-x72tl        1/1     Running   0          12s
-   pod/gateway-proxy-6c97c6c74-gdnf8   1/1     Running   0          12s
-   pod/gloo-77f695fbb9-68lcw           1/1     Running   0          13s
+   pod/discovery-7d87b5c69d-x6798      1/1     Running   0          42s
+   pod/gateway-7459bf6bcc-4ttgt        1/1     Running   0          42s
+   pod/gateway-proxy-6c97c6c74-kgrgq   1/1     Running   0          42s
+   pod/gloo-77f695fbb9-db8wj           1/1     Running   0          42s
 
    NAME                    TYPE           CLUSTER-IP       EXTERNAL-IP   PORT(S)                      AGE
-   service/gateway-proxy   LoadBalancer   10.97.60.144     <pending>     80:32685/TCP,443:32668/TCP   13s
-   service/gloo            ClusterIP      10.108.141.196   <none>        9977/TCP                     13s
+   service/gateway-proxy   LoadBalancer   10.108.215.166   <pending>     80:30331/TCP,443:31240/TCP   43s
+   service/gloo            ClusterIP      10.96.5.72       <none>        9977/TCP                     43s
 
    NAME                            READY   UP-TO-DATE   AVAILABLE   AGE
-   deployment.apps/discovery       1/1     1            1           13s
-   deployment.apps/gateway         1/1     1            1           13s
-   deployment.apps/gateway-proxy   1/1     1            1           12s
-   deployment.apps/gloo            1/1     1            1           13s
+   deployment.apps/discovery       1/1     1            1           42s
+   deployment.apps/gateway         1/1     1            1           42s
+   deployment.apps/gateway-proxy   1/1     1            1           42s
+   deployment.apps/gloo            1/1     1            1           42s
 
    NAME                                      DESIRED   CURRENT   READY   AGE
-   replicaset.apps/discovery-7d87b5c69d      1         1         1       13s
-   replicaset.apps/gateway-7459bf6bcc        1         1         1       12s
-   replicaset.apps/gateway-proxy-6c97c6c74   1         1         1       12s
-   replicaset.apps/gloo-77f695fbb9           1         1         1       13s
+   replicaset.apps/discovery-7d87b5c69d      1         1         1       42s
+   replicaset.apps/gateway-7459bf6bcc        1         1         1       42s
+   replicaset.apps/gateway-proxy-6c97c6c74   1         1         1       42s
+   replicaset.apps/gloo-77f695fbb9           1         1         1       42s
    ```
 
 ## Routing
@@ -242,10 +243,10 @@ You may see some different entries than what follows. It depends on your Kuberne
 +-------------------------------+------------+----------+------------------------------+
 ```
 
-Notice that our petstore service `default-petstore-v1-8080` is different from the other upstreams in
-that its details is listing 4 REST service functions. This is because Gloo can autodetect OpenAPI / Swagger
-definitions. This allows Gloo to route to individual functions versus what most traditional API Gateways do in
-only letting you route to host:port granular services. Let's see that in action.
+Notice that our petstore service `default-petstore-v1-8080` is different from the other upstreams in that its details is
+listing 4 REST service functions: `addPet`, `deletePet`, `findPetByID`, and `findPets`. This is because Gloo can auto-detect
+OpenAPI / Swagger definitions. This allows Gloo to route to individual functions versus what most traditional API
+Gateways do in only letting you route only to host:port granular services. Let's see that in action.
 
 Let's look a little closer at our petstore upstream. The `glooctl` command let's us output the full details in yaml or
 json.
@@ -254,19 +255,21 @@ json.
 glooctl get upstream default-petstore-v1-8080 -o yaml
 ```
 
+{% raw %}
+
 ```yaml
 ---
 discoveryMetadata: {}
 metadata:
   annotations:
     kubectl.kubernetes.io/last-applied-configuration: |
-      {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"labels":{"sevice":"petstore-v1"},"name":"petstore-v1","namespace":"default"},"spec":{"ports":[{"name":"http","port":8080,"protocol":"TCP"}],"selector":{"app":"petstore-v1"}}}
+      {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"labels":{"app":"petstore-v1"},"name":"petstore-v1","namespace":"default"},"spec":{"ports":[{"name":"http","port":8080,"protocol":"TCP","targetPort":8080}],"selector":{"app":"petstore-v1"},"type":"ClusterIP"}}
   labels:
+    app: petstore-v1
     discovered_by: kubernetesplugin
-    sevice: petstore-v1
   name: default-petstore-v1-8080
   namespace: gloo-system
-  resourceVersion: "129285"
+  resourceVersion: "15160"
 status:
   reportedBy: gloo
   state: Accepted
@@ -326,10 +329,12 @@ upstreamSpec:
               transfer-encoding: {}
 ```
 
-For example, we see that the `findPets` REST function is looking for requests on `/api/pets`, and `findPetsById` is
+{% endraw %}
+
+Here we see that the `findPets` REST function is looking for requests on `/api/pets`, and `findPetsById` is
 looking for requests on `/api/pets/{id}` where `{id}` is the id number of the single pet who's details are to be returned.
 
-## Basic Routing
+### Basic Routing
 
 Gloo acts like an [Kubernetes Ingress](https://kubernetes.io/docs/concepts/services-networking/ingress/), which means it
 can allow requests from external to the Kubernetes cluster to access services running inside the cluster. Gloo uses a
@@ -351,14 +356,17 @@ some routes in the next steps.
 
    ```yaml
    ---
-   displayName: coalmine
+   apiVersion: gateway.solo.io/v1
+   kind: VirtualService
    metadata:
      name: coalmine
      namespace: gloo-system
-   virtualHost:
-     domains:
-     - '*'
-     name: gloo-system.coalmine
+   spec:
+     displayName: coalmine
+     virtualHost:
+       domains:
+       - '*'
+       name: gloo-system.coalmine
    ```
 
 1. Create a route for all traffic to go to our service.
@@ -372,10 +380,8 @@ some routes in the next steps.
    ```
 
    This sets up a simple ingress route so that all requests going to the Gloo Proxy `/` URL are redirected to the
-   `default-petstore-v1-8080` service `/api/pets`. Let's test it.
-
-   To get the Gloo proxy host and port number (remember that Gloo is acting like a Kubernetes Ingress), we need to call
-   `glooctl proxy url`. Then let's call the route path.
+   `default-petstore-v1-8080` service `/api/pets`. Let's test it. To get the Gloo proxy host and port number (remember
+   that Gloo is acting like a Kubernetes Ingress), we need to call `glooctl proxy url`. Then let's call the route path.
 
    ```shell
    export PROXY_URL=$(glooctl proxy url)
@@ -388,51 +394,7 @@ some routes in the next steps.
    [{"id":1,"name":"Dog","status":"available"},{"id":2,"name":"Cat","status":"pending"}]
    ```
 
-## Function Routing
-
-Wouldn't it be better if we could just route to the named REST function versus having to know the specifics of the query
-path (i.e. `/api/pets`) the service is expecting? Gloo can help us with that. Let's setup a route to `findPets` REST
-function.
-
-```shell
-glooctl add route \
-   --name coalmine \
-   --path-prefix /findPets \
-   --dest-name default-petstore-v1-8080 \
-   --rest-function-name findPets
-```
-
-And test it.
-
-```shell
-curl ${PROXY_URL}/findPets
-```
-
-We should see the same results as the `/petstore`.
-
-If we want to route to a function with parameters, we can do that too by telling Gloo how to find the `id` parameter.
-In this case, it happens to be a path parameter, but it could come from other parts of the request:
-
-```shell
-glooctl add route \
-   --name coalmine \
-   --path-prefix /findPetWithId/ \
-   --dest-name default-petstore-v1-8080 \
-   --rest-function-name findPetById \
-   --rest-parameters ':path=/findPetWithId/{id}'
-```
-
-Let's look up the details for the pet with id 1
-
-```shell
-curl ${PROXY_URL}/findPetWithId/1
-```
-
-```json
-{"id":1,"name":"Dog","status":"available"}
-```
-
-Here's the complete YAML you could apply to get the same virtual service setup that we just did.
+Here's the full YAML for the coal virtual service created so far.
 
 ```yaml
 apiVersion: gateway.solo.io/v1
@@ -448,7 +410,89 @@ spec:
     name: gloo-system.coalmine
     routes:
     - matcher:
-        prefix: /findPetWithId/
+        prefix: /petstore
+      routeAction:
+        single:
+          upstream:
+            name: default-petstore-v1-8080
+            namespace: gloo-system
+      routePlugins:
+        prefixRewrite:
+          prefixRewrite: /api/pets/
+```
+
+### Function Routing
+
+Wouldn't it be better if we could just route to the named REST function versus having to know the specifics of the query
+path (i.e. `/api/pets`) the service is expecting? Gloo can help us with that. Let's setup a route to `findPets` REST
+function.
+
+```shell
+glooctl add route \
+   --name coalmine \
+   --path-prefix /findPets \
+   --dest-name default-petstore-v1-8080 \
+   --rest-function-name findPets
+```
+
+And test it. We should see the same results as the request to `/petstore` as both those examples were exercising the
+`findPets` REST function in the petstore service. This also shows that Gloo allows you to create multiple routing rules
+for the same REST functions, if you want.
+
+```shell
+curl ${PROXY_URL}/findPets
+```
+
+If we want to route to a function with parameters, we can do that too by telling Gloo how to find the `id` parameter.
+In this case, it happens to be a path parameter, but it could come from other parts of the request:
+
+```shell
+glooctl add route \
+   --name coalmine \
+   --path-prefix /findPetWithId \
+   --dest-name default-petstore-v1-8080 \
+   --rest-function-name findPetById \
+   --rest-parameters ':path=/findPetWithId/{id}'
+```
+
+Let's look up the details for the pet with id 1
+
+```shell
+curl ${PROXY_URL}/findPetWithId/1
+```
+
+```json
+{"id":1,"name":"Dog","status":"available"}
+```
+
+And the pet with id 2
+
+```shell
+curl ${PROXY_URL}/findPetWithId/2
+```
+
+```json
+{"id":2,"name":"Cat","status":"pending"}
+```
+
+Here's the complete YAML you could apply to get the same virtual service setup that we just did. To recreate this
+virtual service you could just `kubectl apply` the following YAML.
+
+```yaml
+apiVersion: gateway.solo.io/v1
+kind: VirtualService
+metadata:
+  name: coalmine
+  namespace: gloo-system
+spec:
+  displayName: coalmine
+  virtualHost:
+    domains:
+    - '*'
+    name: gloo-system.coalmine
+    routes:
+    - matcher:
+        prefix: /findPetWithId
       routeAction:
         single:
           destinationSpec:
@@ -461,7 +505,7 @@ spec:
             name: default-petstore-v1-8080
             namespace: gloo-system
     - matcher:
-        exact: /findPets
+        prefix: /findPets
       routeAction:
         single:
           destinationSpec:
