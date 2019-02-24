@@ -2,6 +2,7 @@
 layout: post
 title: Routing with Gloo Function Gateway
 date: 2019-02-19T14:26:47Z
+description: Introduction to function level routing with Solo.io Gloo.
 tags:
 - Gloo
 ---

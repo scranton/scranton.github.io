@@ -2,6 +2,7 @@
 layout: post
 title: Canary Deployments with Gloo Function Gateway
 date: 2019-02-19T15:05:59Z
+description: Introduction to Canary releases with Solo.io Gloo.
 tags:
 - Gloo
 - Canary

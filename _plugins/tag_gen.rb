@@ -5,12 +5,12 @@ module Jekyll
       @base = base
       @dir = dir
       @name = 'index.html'
-      self.process(@name)
-      self.read_yaml(File.join(base, '_layouts'), 'tag_index.html')
-      self.data['tag'] = tag
+      process(@name)
+      read_yaml(File.join(base, '_layouts'), 'tag_index.html')
+      data['tag'] = tag
       tag_title_prefix = site.config['tag_title_prefix'] || 'Posts Tagged - '
       tag_title_suffix = site.config['tag_title_suffix'] || ''
-      self.data['title'] = "#{tag_title_prefix}#{tag}#{tag_title_suffix}"
+      data['title'] = "#{tag_title_prefix}#{tag}#{tag_title_suffix}"
     end
   end
   class TagGenerator < Generator
@@ -23,6 +23,7 @@ module Jekyll
         end
       end
     end
+
     def write_tag_index(site, dir, tag)
       index = TagIndex.new(site, site.source, dir, tag)
       index.render(site.layouts, site.site_payload)
@@ -30,4 +31,4 @@ module Jekyll
       site.pages << index
     end
   end
-  	end
+end

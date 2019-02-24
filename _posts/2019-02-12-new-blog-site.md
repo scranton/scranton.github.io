@@ -2,6 +2,7 @@
 layout: post
 title: New Personal Blog Site
 date: 2019-02-16 17:35
+description: Updated my personal blog site.
 ---
 
 <figure class="aligncenter">
