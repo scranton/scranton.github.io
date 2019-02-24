@@ -60,7 +60,7 @@ url: "https://scott.cranton.com"
 baseurl: ""
 
 # Includes
-include: ["_pages"]
+include: ["_pages", .nojekyll]
 
 # Outputting
 permalink: /:categories/:title.html
