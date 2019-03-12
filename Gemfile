@@ -19,6 +19,7 @@ gem 'jekyll', '3.8.4'
 group :jekyll_plugins do
   gem 'jekyll-paginate'
   gem 'jekyll-sitemap'
+  gem 'jekyll_github_sample'
   gem 'listen'
   # gem 'wdm', '>= 0.1.0'
 end

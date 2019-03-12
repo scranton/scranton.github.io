@@ -81,3 +81,4 @@ sass:
 
 plugins:
   - jekyll-sitemap
+  - jekyll_github_sample
