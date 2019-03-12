@@ -1,4 +1,4 @@
-var hostname = "http://localhost:4000";
+var hostname = "https://scott.cranton.com";
 var index = lunr(function () {
     this.field('title')
     this.field('content', {boost: 10})
