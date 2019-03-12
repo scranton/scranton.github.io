@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html>
+    <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>socat is so cool... | Scott Cranton &mdash; Solo.io Customer Success </title>
+    <meta property="og:title" content="socat is so cool... | Scott Cranton &mdash; Solo.io Customer Success " />
+    <meta name="twitter:title" content="socat is so cool... | Scott Cranton &mdash; Solo.io Customer Success " />
+
+    <meta name="description" content="I lead Customer Success at Solo.io. I enjoy hacking tech, and writing about it.">
+    <meta name="description" property="og:description" content="I lead Customer Success at Solo.io. I enjoy hacking tech, and writing about it." />
+    <meta name="twitter:description" content="I lead Customer Success at Solo.io. I enjoy hacking tech, and writing about it." />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    
+    <meta name="twitter:site" content="@scottcranton" />
+    
+    <meta property="og:url" content="https://scott.cranton.com/socat-is-so-cool.html" />
+
+    <meta property="og:image" content="" />
+    <meta name="twitter:image" content="" />
+
+    <meta name="author" content="Scott Cranton" />
+
+    <meta name="copyright" content="Copyright by Scott Cranton. All Rights Reserved." />
+
+    <style>
+        @font-face {
+            font-family: 'Roboto';
+            font-style: normal;
+            font-weight: 300;
+            src: local('Roboto Light'), local('Roboto-Light'), url(https://fonts.gstatic.com/s/roboto/v15/Hgo13k-tfSpn0qi1SFdUfVtXRa8TVwTICgirnJhmVJw.woff2) format('woff2');
+            unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2212, U+2215, U+E0FF, U+EFFD, U+F000;
+        }
+
+        @font-face {
+            font-family: 'Roboto';
+            font-style: normal;
+            font-weight: 400;
+            src: local('Roboto'), local('Roboto-Regular'), url(https://fonts.gstatic.com/s/roboto/v15/CWB0XYA8bzo0kSThX0UTuA.woff2) format('woff2');
+            unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2212, U+2215, U+E0FF, U+EFFD, U+F000;
+        }
+
+        @font-face {
+            font-family: 'Roboto';
+            font-style: normal;
+            font-weight: 700;
+            src: local('Roboto Bold'), local('Roboto-Bold'), url(https://fonts.gstatic.com/s/roboto/v15/d-6IYplOFocCacKzxwXSOFtXRa8TVwTICgirnJhmVJw.woff2) format('woff2');
+            unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2212, U+2215, U+E0FF, U+EFFD, U+F000;
+        }
+
+        @font-face {
+            font-family: 'Roboto';
+            font-style: normal;
+            font-weight: 900;
+            src: local('Roboto Black'), local('Roboto-Black'), url(https://fonts.gstatic.com/s/roboto/v15/mnpfi9pxYH-Go5UiibESIltXRa8TVwTICgirnJhmVJw.woff2) format('woff2');
+            unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2212, U+2215, U+E0FF, U+EFFD, U+F000;
+        }
+
+        @font-face {
+            font-family: 'Roboto';
+            font-style: italic;
+            font-weight: 300;
+            src: local('Roboto Light Italic'), local('Roboto-LightItalic'), url(https://fonts.gstatic.com/s/roboto/v15/7m8l7TlFO-S3VkhHuR0at44P5ICox8Kq3LLUNMylGO4.woff2) format('woff2');
+            unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2212, U+2215, U+E0FF, U+EFFD, U+F000;
+        }
+
+        @font-face {
+            font-family: 'Roboto';
+            font-style: italic;
+            font-weight: 400;
+            src: local('Roboto Italic'), local('Roboto-Italic'), url(https://fonts.gstatic.com/s/roboto/v15/vPcynSL0qHq_6dX7lKVByfesZW2xOQ-xsNqO47m55DA.woff2) format('woff2');
+            unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2212, U+2215, U+E0FF, U+EFFD, U+F000;
+        }
+
+        @font-face {
+            font-family: 'Roboto';
+            font-style: italic;
+            font-weight: 700;
+            src: local('Roboto Bold Italic'), local('Roboto-BoldItalic'), url(https://fonts.gstatic.com/s/roboto/v15/t6Nd4cfPRhZP44Q5QAjcC44P5ICox8Kq3LLUNMylGO4.woff2) format('woff2');
+            unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2212, U+2215, U+E0FF, U+EFFD, U+F000;
+        }
+
+        @font-face {
+            font-family: 'Roboto';
+            font-style: italic;
+            font-weight: 900;
+            src: local('Roboto Black Italic'), local('Roboto-BlackItalic'), url(https://fonts.gstatic.com/s/roboto/v15/bmC0pGMXrhphrZJmniIZpY4P5ICox8Kq3LLUNMylGO4.woff2) format('woff2');
+            unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2212, U+2215, U+E0FF, U+EFFD, U+F000;
+        }
+    </style>
+    
+    <link href="/favicon.ico" rel="shortcut icon" type="image/x-icon" />
+    
+    <link rel="stylesheet" href="https://scott.cranton.com/assets/css/main.css">
+
+    <link rel="canonical" href="https://scott.cranton.com/socat-is-so-cool.html">
+
+    <link rel="alternate" type="application/rss+xml" title="Scott Cranton" href="https://scott.cranton.com/feed.xml">
+</head>
+
+    <body>
+        <div class="wrapper">
+            <aside class="user-profile fixed" role="complementary">
+    <div class="burger">
+        <input class="trigger hidden" id="toggleBurger" type="checkbox" />
+        <label for="toggleBurger">
+            <span>Navigation</span>
+        </label>
+    </div>
+
+    <div class="compact-header">
+        <a class="avatar" href="https://scott.cranton.com"><img alt="Avatar" src="/scottcranton.png" /></a>
+        <div class="my-info">
+            <strong class="my-name">Scott Cranton</strong>
+            <span class="my-job-title">Solo.io Customer Success</span>
+        </div>
+    </div>
+
+    
+        
+        <div class="mainmenu">
+            <a href="https://scott.cranton.com" >Home</a>
+            
+                
+            
+                
+            
+                
+            
+                
+                    <a href="https://scott.cranton.com/archive/" >Archive</a>
+                
+            
+                
+                    <a href="https://scott.cranton.com/publications/" >Publications</a>
+                
+            
+                
+            
+                
+            
+                
+            
+                
+            
+                
+            
+                
+            
+                
+            
+                
+            
+                
+            
+                
+            
+                
+            
+                
+            
+        </div>
+        
+    
+
+    <p class="about-me">I lead Customer Success at Solo.io. I enjoy hacking tech, and writing about it.</p>
+
+    <ul class="socials">
+        <li><a href="http://twitter.com/scottcranton"><svg title="twitter" width="16" height="16" ><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://scott.cranton.com/assets/svg/social-icons.svg#twitter-icon"></use></svg></a></li><li><a href="https://www.linkedin.com/in/scottcranton/"><svg title="linkedin" width="16" height="16" ><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://scott.cranton.com/assets/svg/social-icons.svg#linkedin-icon"></use></svg></a></li><li><a href="https://github.com/scranton"><svg title="github" width="16" height="16" ><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://scott.cranton.com/assets/svg/social-icons.svg#github-icon"></use></svg></a></li>
+
+        
+
+        
+         <li><a href="https://scott.cranton.com/feed.xml"><svg title="" width="16" height="16"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://scott.cranton.com/assets/svg/social-icons.svg#rss-icon"></use></svg></a></li>
+        
+    </ul>
+</aside>
+
+            <main class="the-content" role="main">
+                <div class="search" role="search">
+    <div>
+        <div class="show-results-count">0 Results</div>
+        <div class="search-holder">
+            <input type="text" id="search-input" placeholder="search for..." />
+        </div>
+    </div>
+    <ul id="results-container" class="results-container"></ul>
+</div>
+
+
+                <article class="post single" role="article" itemscope itemtype="http://schema.org/BlogPosting">
+    <header class="post-header">
+        <ul>
+            <li><time datetime="2011-04-22T09:47:00-04:00" itemprop="datePublished">22 Apr, 2011</time></li>
+            
+        </ul>
+        <h2 itemprop="name headline">socat is so cool...</h2>
+    </header>
+
+    <div class="post-content">
+        I was helping someone the other day figure out how to use <a href="http://camel.apache.org/">Camel</a> to create a TCP/IP proxy, and I was trying to figure out the best way to test. <a href="http://hiramchirino.com/">Hiram Chirino</a> pointed me at the <a href="http://www.dest-unreach.org/socat/">socat</a> utility, which is so super geeky cool that I am inspired to post about it...<br /><br />I installed socat on my Mac using <a href="http://www.macports.org/">MacPorts</a><br /><br /><span class="Apple-style-span" style="font-family: 'Courier New', Courier, monospace;">&gt; sudo ports install socat</span><br /><br />The full code is here on GitHub <a href="https://github.com/scranton/camel-example-tcpipproxy">https://github.com/scranton/camel-example-tcpipproxy</a>.<br /><br />The Camel route is straightforward. It uses <a href="http://camel.apache.org/mina.html">Camel-Mina</a> to both listen on port 5000 and to connect to a request-response (InOut) service on port 5001.<br /><br /><script src="https://gist.github.com/936617.js?file=camelContext.xml"></script> <br /><br />When you run this route, you can use socat as both the back-end service (echo style) and as a client. To start it as a back-end echo service, which will start a TCP/IP listener on port 5001 and will echo all messages sent to it (that's what 'PIPE' does).<br /><br /><span class="Apple-style-span" style="font-family: 'Courier New', Courier, monospace;">&gt; socat PIPE TCP4-LISTEN:5001<br /><span class="Apple-style-span" style="font-family: Times;"><br /></span></span><br /><div><span class="Apple-style-span" style="font-family: 'Courier New', Courier, monospace;"><span class="Apple-style-span" style="font-family: Times;">To use socat as a TCP/IP client, run</span></span><br /><div><span class="Apple-style-span" style="font-family: 'Courier New', Courier, monospace;"><span class="Apple-style-span" style="font-family: Times;"><br /></span></span></div><span class="Apple-style-span" style="font-family: 'Courier New', Courier, monospace;">&gt; socat - tcp:localhost:5001</span></div><br />Now any text you type in the Terminal where you started the client will be echo'd back to you - after it goes to and from the socat echo service. You can test this by stopping the socat echo service and seeing how the client reacts.<br /><div><br /></div><div>Back to the Camel proxy... To test, after you start the socat echo server, you'd start the Camel route</div><div><br /></div><div><span class="Apple-style-span" style="font-family: 'Courier New', Courier, monospace;">&gt; mvn install camel:run</span></div><div><br /></div><div>This will start the Camel route standalone (the full example can also be deployed within <a href="http://servicemix.apache.org/">ServiceMix</a>), with a TCP/IP listener on port 5000 and a connection to the echo service on port 5001. Now you can start the socat client, but this time against port 5000 (the Camel proxy)</div><div><br /></div><div><span class="Apple-style-span" style="font-family: 'Courier New', Courier, monospace;">&gt; socat - tcp:localhost:5000</span></div><div><br /></div><div>Now your text messages will run through the Camel proxy before going to the back end echo service; the Camel route will log each message that it proxies.</div><div><br /></div><div>A quick example of a cool TCP/IP utility, and how to use the powerful Camel framework to proxy anything... Thanks for the tip Hiram!</div>
+    </div>
+
+    <footer class="post-footer">
+        <div class="share">Share
+            <ul class="social-networks">
+                <li class="share-facebook"><a href="https://www.facebook.com/sharer.php?s=100&p[title]=socat is so cool...&p[summary]=&p[url]=https://scott.cranton.com/socat-is-so-cool.html" class="s_facebook" target="_blank" onclick="window.open(this.href, '','width=700,height=300');return false;"><svg title="" width="16" height="16"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://scott.cranton.com/assets/svg/social-icons.svg#facebook-icon"></use></svg></a></li>
+                <li class="share-twitter"><a href="http://twitter.com/share?url=https://scott.cranton.com/socat-is-so-cool.html&text=&hashtags=" rel="noreferrer" target="_blank" onclick="window.open(this.href, '','width=700,height=300');return false;"><svg title="" width="16" height="16"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://scott.cranton.com/assets/svg/social-icons.svg#twitter-icon"></use></svg></a></li>
+            </ul>
+        </div>
+        
+        <div class="tags">
+            <ul>
+                
+            </ul>
+        </div>
+        
+    </footer>
+</article>
+
+
+            </main>
+        </div>
+
+        <script src="https://scott.cranton.com/assets/js/jquery-1.12.2.min.js"></script>
+<script src="https://scott.cranton.com/assets/js/backtotop.js"></script>
+<script src="https://scott.cranton.com/assets/js/lunr.min.js"></script>
+<script src="https://scott.cranton.com/assets/js/lunr-feed.js"></script>
+<script src="https://scott.cranton.com/assets/js/jquery.fitvids.js"></script>
+<script src="https://scott.cranton.com/assets/js/svg4everybody.min.js"></script>
+<script src="https://scott.cranton.com/assets/js/scripts.js"></script>
+
+
+    <script>
+        (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+                    (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+                m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+        })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+        ga('create', 'UA-134627391-1', 'auto');
+        ga('send', 'pageview');
+    </script>
+
+    </body>
+</html>
