@@ -13,6 +13,16 @@ tags:
     <figcaption>Photo by <a href="https://unsplash.com/@zabit" target="_blank">Zab Consulting</a>.</figcaption>
 </figure>
 
+This is the 2nd post in my 3 part series on doing Canary Releases with [Solo.io](https://solo.io) [Gloo](https://gloo.solo.io).
+
+* In part 1, [Routing with Gloo Function Gateway]({{ site.baseurl }}{% post_url 2019-02-19-function-routing-with-gloo %}),
+you learned how to setup [Gloo](https://gloo.solo.io), and using Gloo to setup some initial function level routing rules.
+* In part 2, [Canary Deployments with Gloo Function Gateway]({{ site.baseurl }}{% post_url 2019-02-19-canary-deployments-with-solo %}),
+you learned how to setup a conditional routing rule that routed requests to the new version of our service only when
+a request header was present with the correct value.
+* In part 3, [Canary Deployments with Gloo Function Gateway using Weighted Destinations]({{ site.baseurl }}{% post_url 2019-03-12-canary-deployments-with-weighted-routes %}),
+we used weighted destinations to route a percentage of request traffic to individual upstream services.
+
 This post expands on the [Function Routing with Gloo]({{ site.baseurl }}{% post_url 2019-02-19-function-routing-with-gloo %})
 post to show you how to do a Canary release of a new version of a function. [Gloo is a function gateway](https://medium.com/solo-io/announcing-gloo-the-function-gateway-3f0860ef6600)
 that gives users a number of benefits including sophisticated function level routing, and deep service discovery with
@@ -134,19 +144,20 @@ request to version 2 of our function.
 1. Verify its setup right
 
    ```shell
-   kubectl get pods --namespace default
+   kubectl get services --namespace default
    ```
 
    ```shell
-   NAME                           READY   STATUS    RESTARTS   AGE
-   petstore-v1-986747fc8-mx2nl    1/1     Running   0          64m
-   petstore-v2-54948fd76c-zhfdh   1/1     Running   0          10s
+   NAME          TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
+   kubernetes    ClusterIP   10.96.0.1       <none>        443/TCP    16h
+   petstore-v1   ClusterIP   10.97.235.37    <none>        8080/TCP   15m
+   petstore-v2   ClusterIP   10.105.156.10   <none>        8080/TCP   37s
    ```
 
    Now let's setup a port forward to see if it works. When we do a `GET` against `/api/pets` we should get back 3 pets.
 
    ```shell
-   kubectl port-forward petstore-v2-54948fd76c-zhfdh 8080:8080
+   kubectl port-forward services/petstore-v2 8080:8080
    ```
 
    And in a different terminal, run the following to see if we get back 3 pets for version 2 of our service.

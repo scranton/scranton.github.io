@@ -12,6 +12,16 @@ tags:
     <figcaption>Photo by <a href="https://unsplash.com/@pietrozj" target="_blank">Pietro Jeng</a>.</figcaption>
 </figure>
 
+This is the 1st post in my 3 part series on doing Canary Releases with [Solo.io](https://solo.io) [Gloo](https://gloo.solo.io).
+
+* In part 1, [Routing with Gloo Function Gateway]({{ site.baseurl }}{% post_url 2019-02-19-function-routing-with-gloo %}),
+you learned how to setup [Gloo](https://gloo.solo.io), and using Gloo to setup some initial function level routing rules.
+* In part 2, [Canary Deployments with Gloo Function Gateway]({{ site.baseurl }}{% post_url 2019-02-19-canary-deployments-with-solo %}),
+you learned how to setup a conditional routing rule that routed requests to the new version of our service only when
+a request header was present with the correct value.
+* In part 3, [Canary Deployments with Gloo Function Gateway using Weighted Destinations]({{ site.baseurl }}{% post_url 2019-03-12-canary-deployments-with-weighted-routes %}),
+we used weighted destinations to route a percentage of request traffic to individual upstream services.
+
 This post introduces you to how to use the open source [Solo.io](https://solo.io) [Gloo](https://github.com/solo-io/gloo)
 project to help you to route traffic to your Kubernetes hosted services. [Gloo is a function gateway](https://medium.com/solo-io/announcing-gloo-the-function-gateway-3f0860ef6600) that gives users a number of benefits including sophisticated
 function level routing, and deep service discovery with introspection of OpenAPI (Swagger) definitions, gRPC reflection,
@@ -102,25 +112,26 @@ the Kubernetes configuration YAML within this post for ease.
 
 1. Let's test our service to make sure it installed correctly. This service is setup to expose on port `8080`, and will
 return the list of all pets for `GET` requests on the query path `/api/pets`. The easiest way to test is to
-`port-forward` the pod so we can access it locally. We'll need the pod name for the port forwarding. Make sure the pod
-name matches the ones from your system. This will forward port 8080 from the service running in your Kubernetes
+`port-forward` the service so we can access it locally. We'll need the service name for the port forwarding. Make sure
+the service name matches the ones from your system. This will forward port 8080 from the service running in your Kubernetes
 installation to your local machine, i.e. `localhost:8080`.
 
-   * Get the pod names for your installation
+   * Get the service names for your installation
 
    ```shell
-   kubectl get pods --namespace default
+   kubectl get service --namespace default
    ```
 
    ```shell
-   NAME                          READY   STATUS    RESTARTS   AGE
-   petstore-v1-986747fc8-mx2nl   1/1     Running   0          31s
+   NAME          TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)    AGE
+   kubernetes    ClusterIP   10.96.0.1      <none>        443/TCP    16h
+   petstore-v1   ClusterIP   10.97.235.37   <none>        8080/TCP   8m3s
    ```
 
    * Setup the port forwarding
 
    ```shell
-   kubectl port-forward petstore-v1-986747fc8-mx2nl 8080:8080
+   kubectl port-forward service/petstore-v1 8080:8080
    ```
 
    * In a separate terminal, run the following. The petstore function should return 2 pets: Dog and Cat.
@@ -154,6 +165,8 @@ Here are the quick setup instructions.
    ```shell
    curl -sL https://run.solo.io/gloo/install | sh
    ```
+   
+   If you're a Mac or Linux Homebrew user, you can also install this way `brew install glooctl`.
 
 1. Now let's install Gloo into your Kubernetes installation.
 
