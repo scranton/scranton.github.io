@@ -30,8 +30,8 @@ gain confidence in your new version, you can route more and more traffic to it u
 to new version, and decommission the old version.
 
 All of the Kubernetes manifests are located at <https://github.com/scranton/gloo-canary-example>. I'd suggest you clone
-that repo locally to make it easier to try these example yourself. All command examples assume your in the top level
-director of that repo.
+that repo locally to make it easier to try these example yourself. All command examples assume you are in the top level
+directory of that repo.
 
 ## Review
 

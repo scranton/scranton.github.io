@@ -70,8 +70,8 @@ post, and that you've already got a Kubernetes environment setup with Gloo. If n
 setup instructions and the basics of `VirtualServices` and `Routes` with Gloo.
 
 All of the Kubernetes manifests are located at <https://github.com/scranton/gloo-canary-example>. I'd suggest you clone
-that repo locally to make it easier to try these example yourself. All command examples assume your in the top level
-director of that repo.
+that repo locally to make it easier to try these example yourself. All command examples assume you are in the top level
+directory of that repo.
 
 # Review
 

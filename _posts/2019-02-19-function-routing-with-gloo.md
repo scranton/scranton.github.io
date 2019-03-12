@@ -40,8 +40,8 @@ setup and configured correctly for your Kubernetes installation.
 ## Setup example service
 
 All of the Kubernetes manifests are located at <https://github.com/scranton/gloo-canary-example>. I'd suggest you clone
-that repo locally to make it easier to try these example yourself. All command examples assume your in the top level
-director of that repo.
+that repo locally to make it easier to try these example yourself. All command examples assume you are in the top level
+directory of that repo.
 
 Let's start by installing an example service that exposes 4 REST functions. This service is based on the
 [go-swagger petstore example](https://github.com/go-swagger/go-swagger/tree/master/examples/2.0/petstore).
