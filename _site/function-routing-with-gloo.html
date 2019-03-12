@@ -225,24 +225,36 @@ Lambda discovery and more. This post will start with a simple example of Gloo di
 service that exposes REST functions. Later posts will build on this initial example to do highlight ever more complex
 scenarios.</p>
 
-<h2 id="prerequisites">Prerequisites</h2>
+<h1 id="prerequisites">Prerequisites</h1>
 
 <p>I’m assuming you’re already running a Kubernetes installation. I’m assuming you’re using <a href="https://kubernetes.io/docs/setup/minikube/">minikube</a>
 for this post though any recent Kubernetes installation should work as long as you have <a href="https://kubernetes.io/docs/tasks/tools/install-kubectl/">kubectl</a>
 setup and configured correctly for your Kubernetes installation.</p>
 
-<h2 id="setup">Setup</h2>
+<h1 id="setup">Setup</h1>
 
-<h3 id="setup-example-services">Setup Example Services</h3>
+<h2 id="setup-example-service">Setup example service</h2>
 
-<ol>
-  <li>
-    <p>Let’s start by installing an example service that exposes 4 REST functions. This service is based on the
-<a href="https://github.com/go-swagger/go-swagger/tree/master/examples/2.0/petstore">go-swagger petstore example</a>. I’m including
-the Kubernetes configuration YAML within this post for ease.</p>
+<p>All of the Kubernetes manifests are located at <a href="https://github.com/scranton/gloo-canary-example">https://github.com/scranton/gloo-canary-example</a>. I’d suggest you clone
+that repo locally to make it easier to try these example yourself. All command examples assume your in the top level
+director of that repo.</p>
 
-    <div class="language-yaml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="s">cat &lt;&lt;EOF | kubectl apply -f -</span>
-<span class="nn">---</span>
+<p>Let’s start by installing an example service that exposes 4 REST functions. This service is based on the
+<a href="https://github.com/go-swagger/go-swagger/tree/master/examples/2.0/petstore">go-swagger petstore example</a>.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kubectl apply <span class="nt">-f</span> petstore-v1.yaml
+</code></pre></div></div>
+
+<div class="github-sample-reference">
+  <div class="author-info">
+    <a href="https://github.com/scranton/gloo-canary-example/blob/master/petstore-v1.yaml">This Github Sample</a> is by <a href="https://github.com/scranton">scranton</a>
+  </div>
+  <div class="meta-info">
+    petstore-v1.yaml <a href="https://github.com/scranton/gloo-canary-example/blob/master/petstore-v1.yaml">view</a> <a href="https://raw.githubusercontent.com/scranton/gloo-canary-example/master/petstore-v1.yaml">raw</a>
+  </div>
+</div>
+
+<figure class="highlight"><pre><code class="language-yaml" data-lang="yaml"><span class="nn">---</span>
 <span class="c1"># petstore-v1</span>
 <span class="na">apiVersion</span><span class="pi">:</span> <span class="s">v1</span>
 <span class="na">kind</span><span class="pi">:</span> <span class="s">Service</span>
@@ -282,135 +294,115 @@ the Kubernetes configuration YAML within this post for ease.</p>
       <span class="pi">-</span> <span class="na">name</span><span class="pi">:</span> <span class="s">petstore-v1</span>
         <span class="na">image</span><span class="pi">:</span> <span class="s">scottcranton/petstore:v1</span>
         <span class="na">ports</span><span class="pi">:</span>
-        <span class="pi">-</span> <span class="na">containerPort</span><span class="pi">:</span> <span class="s">8080</span>
-<span class="s">EOF</span>
-</code></pre></div>    </div>
+        <span class="pi">-</span> <span class="na">containerPort</span><span class="pi">:</span> <span class="s">8080</span></code></pre></figure>
 
-    <p>We’ve installing this service into the <code class="highlighter-rouge">default</code> namespace, so we can look there to see if it’s installed correctly.</p>
+<p>We’ve installing this service into the <code class="highlighter-rouge">default</code> namespace, so we can look there to see if it’s installed correctly.</p>
 
-    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kubectl get all <span class="nt">--namespace</span> default
-</code></pre></div>    </div>
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kubectl get all <span class="nt">--namespace</span> default
+</code></pre></div></div>
 
-    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>NAME                              READY   STATUS    RESTARTS   AGE
-pod/petstore-v1-986747fc8-mx2nl   1/1     Running   0          10s
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>NAME                              READY   STATUS    RESTARTS   AGE
+pod/petstore-v1-986747fc8-6hn9p   1/1     Running   0          16s
 
-NAME                  TYPE        CLUSTER-IP       EXTERNAL-IP   PORT<span class="o">(</span>S<span class="o">)</span>    AGE
-service/kubernetes    ClusterIP   10.96.0.1        &lt;none&gt;        443/TCP    11h
-service/petstore-v1   ClusterIP   10.100.222.255   &lt;none&gt;        8080/TCP   10s
+NAME                  TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)    AGE
+service/kubernetes    ClusterIP   10.96.0.1      &lt;none&gt;        443/TCP    22h
+service/petstore-v1   ClusterIP   10.110.99.86   &lt;none&gt;        8080/TCP   17s
 
 NAME                          READY   UP-TO-DATE   AVAILABLE   AGE
-deployment.apps/petstore-v1   1/1     1            1           10s
+deployment.apps/petstore-v1   1/1     1            1           16s
 
 NAME                                    DESIRED   CURRENT   READY   AGE
-replicaset.apps/petstore-v1-986747fc8   1         1         1       10s
-</code></pre></div>    </div>
-  </li>
-  <li>
-    <p>Let’s test our service to make sure it installed correctly. This service is setup to expose on port <code class="highlighter-rouge">8080</code>, and will
+replicaset.apps/petstore-v1-986747fc8   1         1         1       16s
+</code></pre></div></div>
+
+<p>Let’s test our service to make sure it installed correctly. This service is setup to expose on port <code class="highlighter-rouge">8080</code>, and will
 return the list of all pets for <code class="highlighter-rouge">GET</code> requests on the query path <code class="highlighter-rouge">/api/pets</code>. The easiest way to test is to
 <code class="highlighter-rouge">port-forward</code> the service so we can access it locally. We’ll need the service name for the port forwarding. Make sure
 the service name matches the ones from your system. This will forward port 8080 from the service running in your Kubernetes
 installation to your local machine, i.e. <code class="highlighter-rouge">localhost:8080</code>.</p>
 
-    <ul>
-      <li>Get the service names for your installation</li>
-    </ul>
+<p>Get the service names for your installation</p>
 
-    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kubectl get service <span class="nt">--namespace</span> default
-</code></pre></div>    </div>
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kubectl get service <span class="nt">--namespace</span> default
+</code></pre></div></div>
 
-    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>NAME          TYPE        CLUSTER-IP     EXTERNAL-IP   PORT<span class="o">(</span>S<span class="o">)</span>    AGE
-kubernetes    ClusterIP   10.96.0.1      &lt;none&gt;        443/TCP    16h
-petstore-v1   ClusterIP   10.97.235.37   &lt;none&gt;        8080/TCP   8m3s
-</code></pre></div>    </div>
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>NAME          TYPE        CLUSTER-IP     EXTERNAL-IP   PORT<span class="o">(</span>S<span class="o">)</span>    AGE
+kubernetes    ClusterIP   10.96.0.1      &lt;none&gt;        443/TCP    22h
+petstore-v1   ClusterIP   10.110.99.86   &lt;none&gt;        8080/TCP   42s
+</code></pre></div></div>
 
-    <ul>
-      <li>Setup the port forwarding</li>
-    </ul>
+<p>Setup the port forwarding</p>
 
-    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kubectl port-forward service/petstore-v1 8080:8080
-</code></pre></div>    </div>
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kubectl port-forward service/petstore-v1 8080:8080
+</code></pre></div></div>
 
-    <ul>
-      <li>In a separate terminal, run the following. The petstore function should return 2 pets: Dog and Cat.</li>
-    </ul>
+<p>In a separate terminal, run the following. The petstore function should return 2 pets: Dog and Cat.</p>
 
-    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>curl localhost:8080/api/pets
-</code></pre></div>    </div>
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>curl localhost:8080/api/pets
+</code></pre></div></div>
 
-    <div class="language-json highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">[{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="s2">"name"</span><span class="p">:</span><span class="s2">"Dog"</span><span class="p">,</span><span class="s2">"status"</span><span class="p">:</span><span class="s2">"available"</span><span class="p">},{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">2</span><span class="p">,</span><span class="s2">"name"</span><span class="p">:</span><span class="s2">"Cat"</span><span class="p">,</span><span class="s2">"status"</span><span class="p">:</span><span class="s2">"pending"</span><span class="p">}]</span><span class="w">
-</span></code></pre></div>    </div>
+<div class="language-json highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">[{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="s2">"name"</span><span class="p">:</span><span class="s2">"Dog"</span><span class="p">,</span><span class="s2">"status"</span><span class="p">:</span><span class="s2">"available"</span><span class="p">},{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">2</span><span class="p">,</span><span class="s2">"name"</span><span class="p">:</span><span class="s2">"Cat"</span><span class="p">,</span><span class="s2">"status"</span><span class="p">:</span><span class="s2">"pending"</span><span class="p">}]</span><span class="w">
+</span></code></pre></div></div>
 
-    <ul>
-      <li>You can also get the Swagger spec as well.</li>
-    </ul>
+<p>You can also get the Swagger spec as well.</p>
 
-    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>curl localhost:8080/swagger.json
-</code></pre></div>    </div>
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>curl localhost:8080/swagger.json
+</code></pre></div></div>
 
-    <p>You can kill all the port forwards. Now we’ll setup Gloo…</p>
-  </li>
-</ol>
+<p>You can kill all the port forwards. Now we’ll setup Gloo…</p>
 
-<h3 id="setup-gloo">Setup Gloo</h3>
+<h2 id="setup-gloo">Setup Gloo</h2>
 
-<ol>
-  <li>
-    <p>Let’s setup the Gloo command line utility. Full instructions are at the <a href="https://gloo.solo.io/installation/">Gloo doc site</a>.
+<p>Let’s setup the Gloo command line utility. Full instructions are at the <a href="https://gloo.solo.io/installation/">Gloo doc site</a>.
 Here are the quick setup instructions.</p>
 
-    <p>Setup the <code class="highlighter-rouge">glooctl</code> command line tool. This makes installation, upgrade, and operations of Gloo easier. I encourage
-you all to look at the <a href="https://run.solo.io/gloo/install">install script</a> <em>before</em> running some random shell script
-off the Internet. This sets up <code class="highlighter-rouge">glooctl</code> in your <code class="highlighter-rouge">$HOME/.gloo/bin</code> directory, and the installation will have you add
-that path to your <code class="highlighter-rouge">PATH</code>.</p>
+<p>Setup the <code class="highlighter-rouge">glooctl</code> command line tool. This makes installation, upgrade, and operations of Gloo easier. Full installation
+instructions are located on the <a href="https://gloo.solo.io">https://gloo.solo.io</a> site.</p>
 
-    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>curl <span class="nt">-sL</span> https://run.solo.io/gloo/install | sh
-</code></pre></div>    </div>
+<p>If you’re a Mac or Linux Homebrew user, I’d recommend installing as follows.</p>
 
-    <p>If you’re a Mac or Linux Homebrew user, you can also install this way <code class="highlighter-rouge">brew install glooctl</code>.</p>
-  </li>
-  <li>
-    <p>Now let’s install Gloo into your Kubernetes installation.</p>
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>brew <span class="nb">install </span>glooctl
+</code></pre></div></div>
 
-    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>glooctl <span class="nb">install </span>gateway
-</code></pre></div>    </div>
+<p>Now let’s install Gloo into your Kubernetes installation.</p>
 
-    <p>Pretty easy, eh? Let’s verify that its installed and running correctly. Gloo by default creates and installs into the
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>glooctl <span class="nb">install </span>gateway
+</code></pre></div></div>
+
+<p>Pretty easy, eh? Let’s verify that its installed and running correctly. Gloo by default creates and installs into the
 <code class="highlighter-rouge">gloo-system</code> namespace, so let’s look at everything running there.</p>
 
-    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kubectl get all <span class="nt">--namespace</span> gloo-system
-</code></pre></div>    </div>
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kubectl get all <span class="nt">--namespace</span> gloo-system
+</code></pre></div></div>
 
-    <p>And the output should look something like the following.</p>
+<p>And the output should look something like the following.</p>
 
-    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>NAME                                READY   STATUS    RESTARTS   AGE
-pod/discovery-7d87b5c69d-x6798      1/1     Running   0          42s
-pod/gateway-7459bf6bcc-4ttgt        1/1     Running   0          42s
-pod/gateway-proxy-6c97c6c74-kgrgq   1/1     Running   0          42s
-pod/gloo-77f695fbb9-db8wj           1/1     Running   0          42s
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>NAME                                 READY   STATUS    RESTARTS   AGE
+pod/discovery-66c865f9bc-h6v8f       1/1     Running   0          22h
+pod/gateway-777cf4486c-8mzj5         1/1     Running   0          22h
+pod/gateway-proxy-5f58774ccc-rcmdv   1/1     Running   0          22h
+pod/gloo-5c6c4466f-ptc8v             1/1     Running   0          22h
 
-NAME                    TYPE           CLUSTER-IP       EXTERNAL-IP   PORT<span class="o">(</span>S<span class="o">)</span>                      AGE
-service/gateway-proxy   LoadBalancer   10.108.215.166   &lt;pending&gt;     80:30331/TCP,443:31240/TCP   43s
-service/gloo            ClusterIP      10.96.5.72       &lt;none&gt;        9977/TCP                     43s
+NAME                    TYPE           CLUSTER-IP      EXTERNAL-IP   PORT(S)                      AGE
+service/gateway-proxy   LoadBalancer   10.97.13.246    &lt;pending&gt;     80:31333/TCP,443:32470/TCP   22h
+service/gloo            ClusterIP      10.104.80.219   &lt;none&gt;        9977/TCP                     22h
 
 NAME                            READY   UP-TO-DATE   AVAILABLE   AGE
-deployment.apps/discovery       1/1     1            1           42s
-deployment.apps/gateway         1/1     1            1           42s
-deployment.apps/gateway-proxy   1/1     1            1           42s
-deployment.apps/gloo            1/1     1            1           42s
+deployment.apps/discovery       1/1     1            1           22h
+deployment.apps/gateway         1/1     1            1           22h
+deployment.apps/gateway-proxy   1/1     1            1           22h
+deployment.apps/gloo            1/1     1            1           22h
 
-NAME                                      DESIRED   CURRENT   READY   AGE
-replicaset.apps/discovery-7d87b5c69d      1         1         1       42s
-replicaset.apps/gateway-7459bf6bcc        1         1         1       42s
-replicaset.apps/gateway-proxy-6c97c6c74   1         1         1       42s
-replicaset.apps/gloo-77f695fbb9           1         1         1       42s
-</code></pre></div>    </div>
-  </li>
-</ol>
+NAME                                       DESIRED   CURRENT   READY   AGE
+replicaset.apps/discovery-66c865f9bc       1         1         1       22h
+replicaset.apps/gateway-777cf4486c         1         1         1       22h
+replicaset.apps/gateway-proxy-5f58774ccc   1         1         1       22h
+replicaset.apps/gloo-5c6c4466f             1         1         1       22h
+</code></pre></div></div>
 
-<h2 id="routing">Routing</h2>
+<h1 id="routing">Routing</h1>
 
-<h3 id="upstreams">Upstreams</h3>
+<h2 id="upstreams">Upstreams</h2>
 
 <p>Before we get into routing, let’s talk a little about the concept of <code class="highlighter-rouge">Upstreams</code>. Upstreams are the services that Gloo
 has discovered automatically. Let’s look at the upstreams that Gloo has discovered in our Kubernetes cluster.</p>
@@ -420,7 +412,7 @@ has discovered automatically. Let’s look at the upstreams that Gloo has discov
 
 <p>You may see some different entries than what follows. It depends on your Kubernetes cluster, and what is running currently.</p>
 
-<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>+-------------------------------+------------+----------+------------------------------+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>+-------------------------------+------------+----------+------------------------------+
 |           UPSTREAM            |    TYPE    |  STATUS  |           DETAILS            |
 +-------------------------------+------------+----------+------------------------------+
 | default-kubernetes-443        | Kubernetes | Accepted | svc name:      kubernetes    |
@@ -464,11 +456,10 @@ Gateways do in only letting you route only to host:port granular services. Let�
 <p>Let’s look a little closer at our petstore upstream. The <code class="highlighter-rouge">glooctl</code> command let’s us output the full details in yaml or
 json.</p>
 
-<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>glooctl get upstream default-petstore-v1-8080 <span class="nt">-o</span> yaml
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>glooctl get upstream default-petstore-v1-8080 <span class="nt">--output</span> yaml
 </code></pre></div></div>
 
-<div class="language-yaml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nn">---</span>
-<span class="na">discoveryMetadata</span><span class="pi">:</span> <span class="pi">{}</span>
+<figure class="highlight"><pre><code class="language-yaml" data-lang="yaml"><span class="na">discoveryMetadata</span><span class="pi">:</span> <span class="pi">{}</span>
 <span class="na">metadata</span><span class="pi">:</span>
   <span class="na">annotations</span><span class="pi">:</span>
     <span class="s">kubectl.kubernetes.io/last-applied-configuration</span><span class="pi">:</span> <span class="pi">|</span>
@@ -478,7 +469,7 @@ json.</p>
     <span class="na">discovered_by</span><span class="pi">:</span> <span class="s">kubernetesplugin</span>
   <span class="na">name</span><span class="pi">:</span> <span class="s">default-petstore-v1-8080</span>
   <span class="na">namespace</span><span class="pi">:</span> <span class="s">gloo-system</span>
-  <span class="na">resourceVersion</span><span class="pi">:</span> <span class="s2">"</span><span class="s">15160"</span>
+  <span class="na">resourceVersion</span><span class="pi">:</span> <span class="s2">"</span><span class="s">20387"</span>
 <span class="na">status</span><span class="pi">:</span>
   <span class="na">reportedBy</span><span class="pi">:</span> <span class="s">gloo</span>
   <span class="na">state</span><span class="pi">:</span> <span class="s">Accepted</span>
@@ -535,35 +526,31 @@ json.</p>
               <span class="na">content-length</span><span class="pi">:</span>
                 <span class="na">text</span><span class="pi">:</span> <span class="s2">"</span><span class="s">0"</span>
               <span class="na">content-type</span><span class="pi">:</span> <span class="pi">{}</span>
-              <span class="na">transfer-encoding</span><span class="pi">:</span> <span class="pi">{}</span>
-</code></pre></div></div>
+              <span class="na">transfer-encoding</span><span class="pi">:</span> <span class="pi">{}</span></code></pre></figure>
 
 <p>Here we see that the <code class="highlighter-rouge">findPets</code> REST function is looking for requests on <code class="highlighter-rouge">/api/pets</code>, and <code class="highlighter-rouge">findPetsById</code> is
 looking for requests on <code class="highlighter-rouge">/api/pets/{id}</code> where <code class="highlighter-rouge">{id}</code> is the id number of the single pet who’s details are to be returned.</p>
 
 <h3 id="basic-routing">Basic Routing</h3>
 
-<p>Gloo acts like an <a href="https://kubernetes.io/docs/concepts/services-networking/ingress/">Kubernetes Ingress</a>, which means it
-can allow requests from external to the Kubernetes cluster to access services running inside the cluster. Gloo uses a
-concept called <code class="highlighter-rouge">VirtualService</code> to setup routes to Kubernetes hosted services.</p>
+<p>Gloo acts like an (better) <a href="https://kubernetes.io/docs/concepts/services-networking/ingress/">Kubernetes Ingress</a>, which
+means it can allow requests from external to the Kubernetes cluster to access services running inside the cluster. Gloo
+uses a concept called <code class="highlighter-rouge">VirtualService</code> to setup routes to Kubernetes hosted services.</p>
 
 <p>This post will show you how to configure Gloo using the command line tools, and I’ll explain a little of what’s happening
 with each command. I’ll also include the YAML at the end of each step if you’d prefer to work in a purely declarative
 fashion (versus imperative commands).</p>
 
-<ol>
-  <li>
-    <p>Setup <code class="highlighter-rouge">VirtualService</code>. This gives us a place to define a set of related routes. This won’t do much till we create
+<p>Setup <code class="highlighter-rouge">VirtualService</code>. This gives us a place to define a set of related routes. This won’t do much till we create
 some routes in the next steps.</p>
 
-    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>glooctl create virtualservice <span class="nt">--name</span> coalmine
-</code></pre></div>    </div>
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>glooctl create virtualservice <span class="nt">--name</span> coalmine
+</code></pre></div></div>
 
-    <p>Here’s the YAML that will create the same resource. Note that by default the <code class="highlighter-rouge">glooctl</code> command creates resources in
-the <code class="highlighter-rouge">gloo-system</code> namespace.</p>
+<p>Here’s the YAML that will create the same resource as the <code class="highlighter-rouge">glooctl</code> command we just ran. Note that by default the
+<code class="highlighter-rouge">glooctl</code> command creates resources in the <code class="highlighter-rouge">gloo-system</code> namespace.</p>
 
-    <div class="language-yaml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nn">---</span>
-<span class="na">apiVersion</span><span class="pi">:</span> <span class="s">gateway.solo.io/v1</span>
+<div class="language-yaml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="na">apiVersion</span><span class="pi">:</span> <span class="s">gateway.solo.io/v1</span>
 <span class="na">kind</span><span class="pi">:</span> <span class="s">VirtualService</span>
 <span class="na">metadata</span><span class="pi">:</span>
   <span class="na">name</span><span class="pi">:</span> <span class="s">coalmine</span>
@@ -574,32 +561,29 @@ the <code class="highlighter-rouge">gloo-system</code> namespace.</p>
     <span class="na">domains</span><span class="pi">:</span>
     <span class="pi">-</span> <span class="s1">'</span><span class="s">*'</span>
     <span class="na">name</span><span class="pi">:</span> <span class="s">gloo-system.coalmine</span>
-</code></pre></div>    </div>
-  </li>
-  <li>
-    <p>Create a route for all traffic to go to our service.</p>
+</code></pre></div></div>
 
-    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>glooctl add route <span class="se">\</span>
-   <span class="nt">--name</span> coalmine <span class="se">\</span>
-   <span class="nt">--path-prefix</span> /petstore <span class="se">\</span>
-   <span class="nt">--dest-name</span> default-petstore-v1-8080 <span class="se">\</span>
-   <span class="nt">--prefix-rewrite</span> /api/pets/
-</code></pre></div>    </div>
+<p>Create a route for all traffic to go to our service.</p>
 
-    <p>This sets up a simple ingress route so that all requests going to the Gloo Proxy <code class="highlighter-rouge">/</code> URL are redirected to the
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>glooctl add route <span class="se">\</span>
+  <span class="nt">--name</span> coalmine <span class="se">\</span>
+  <span class="nt">--path-prefix</span> /petstore <span class="se">\</span>
+  <span class="nt">--dest-name</span> default-petstore-v1-8080 <span class="se">\</span>
+  <span class="nt">--prefix-rewrite</span> /api/pets
+</code></pre></div></div>
+
+<p>This sets up a simple ingress route so that all requests going to the Gloo Proxy <code class="highlighter-rouge">/</code> URL are redirected to the
 <code class="highlighter-rouge">default-petstore-v1-8080</code> service <code class="highlighter-rouge">/api/pets</code>. Let’s test it. To get the Gloo proxy host and port number (remember
 that Gloo is acting like a Kubernetes Ingress), we need to call <code class="highlighter-rouge">glooctl proxy url</code>. Then let’s call the route path.</p>
 
-    <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">export </span><span class="nv">PROXY_URL</span><span class="o">=</span><span class="k">$(</span>glooctl proxy url<span class="k">)</span>
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">export </span><span class="nv">PROXY_URL</span><span class="o">=</span><span class="k">$(</span>glooctl proxy url<span class="k">)</span>
 curl <span class="k">${</span><span class="nv">PROXY_URL</span><span class="k">}</span>/petstore
-</code></pre></div>    </div>
+</code></pre></div></div>
 
-    <p>And we should see the same results as when we called the port forwarded service.</p>
+<p>And we should see the same results as when we called the port forwarded service.</p>
 
-    <div class="language-json highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">[{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="s2">"name"</span><span class="p">:</span><span class="s2">"Dog"</span><span class="p">,</span><span class="s2">"status"</span><span class="p">:</span><span class="s2">"available"</span><span class="p">},{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">2</span><span class="p">,</span><span class="s2">"name"</span><span class="p">:</span><span class="s2">"Cat"</span><span class="p">,</span><span class="s2">"status"</span><span class="p">:</span><span class="s2">"pending"</span><span class="p">}]</span><span class="w">
-</span></code></pre></div>    </div>
-  </li>
-</ol>
+<div class="language-json highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">[{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="s2">"name"</span><span class="p">:</span><span class="s2">"Dog"</span><span class="p">,</span><span class="s2">"status"</span><span class="p">:</span><span class="s2">"available"</span><span class="p">},{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">2</span><span class="p">,</span><span class="s2">"name"</span><span class="p">:</span><span class="s2">"Cat"</span><span class="p">,</span><span class="s2">"status"</span><span class="p">:</span><span class="s2">"pending"</span><span class="p">}]</span><span class="w">
+</span></code></pre></div></div>
 
 <p>Here’s the full YAML for the coal virtual service created so far.</p>
 
@@ -624,12 +608,12 @@ curl <span class="k">${</span><span class="nv">PROXY_URL</span><span class="k">}
             <span class="na">namespace</span><span class="pi">:</span> <span class="s">gloo-system</span>
       <span class="na">routePlugins</span><span class="pi">:</span>
         <span class="na">prefixRewrite</span><span class="pi">:</span>
-          <span class="na">prefixRewrite</span><span class="pi">:</span> <span class="s">/api/pets/</span>
+          <span class="na">prefixRewrite</span><span class="pi">:</span> <span class="s">/api/pets</span>
 </code></pre></div></div>
 
-<h3 id="function-routing">Function Routing</h3>
+<h2 id="function-routing">Function Routing</h2>
 
-<p>Wouldn’t it be better if we could just route to the named REST function versus having to know the specifics of the query
+<p>Would it be better if we could just route to the named REST function versus having to know the specifics of the query
 path (i.e. <code class="highlighter-rouge">/api/pets</code>) the service is expecting? Gloo can help us with that. Let’s setup a route to <code class="highlighter-rouge">findPets</code> REST
 function.</p>
 
@@ -648,7 +632,10 @@ for the same REST functions, if you want.</p>
 </code></pre></div></div>
 
 <p>If we want to route to a function with parameters, we can do that too by telling Gloo how to find the <code class="highlighter-rouge">id</code> parameter.
-In this case, it happens to be a path parameter, but it could come from other parts of the request:</p>
+In this case, it happens to be a path parameter, but it could come from other parts of the request.</p>
+
+<p><strong>Note</strong>: We’re about to create a route with a <strong>different</strong> name <code class="highlighter-rouge">findPetWithId</code> than the function name <code class="highlighter-rouge">findPetById</code>
+it is routing to. Gloo allows you to setup routing rules for any prefix path to any function name.</p>
 
 <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>glooctl add route <span class="se">\</span>
    <span class="nt">--name</span> coalmine <span class="se">\</span>
@@ -677,7 +664,16 @@ In this case, it happens to be a path parameter, but it could come from other pa
 <p>Here’s the complete YAML you could apply to get the same virtual service setup that we just did. To recreate this
 virtual service you could just <code class="highlighter-rouge">kubectl apply</code> the following YAML.</p>
 
-<div class="language-yaml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="na">apiVersion</span><span class="pi">:</span> <span class="s">gateway.solo.io/v1</span>
+<div class="github-sample-reference">
+  <div class="author-info">
+    <a href="https://github.com/scranton/gloo-canary-example/blob/master/coalmine-virtual-service-part-1.yaml">This Github Sample</a> is by <a href="https://github.com/scranton">scranton</a>
+  </div>
+  <div class="meta-info">
+    coalmine-virtual-service-part-1.yaml <a href="https://github.com/scranton/gloo-canary-example/blob/master/coalmine-virtual-service-part-1.yaml">view</a> <a href="https://raw.githubusercontent.com/scranton/gloo-canary-example/master/coalmine-virtual-service-part-1.yaml">raw</a>
+  </div>
+</div>
+
+<figure class="highlight"><pre><code class="language-yaml" data-lang="yaml"><span class="na">apiVersion</span><span class="pi">:</span> <span class="s">gateway.solo.io/v1</span>
 <span class="na">kind</span><span class="pi">:</span> <span class="s">VirtualService</span>
 <span class="na">metadata</span><span class="pi">:</span>
   <span class="na">name</span><span class="pi">:</span> <span class="s">coalmine</span>
@@ -722,10 +718,9 @@ virtual service you could just <code class="highlighter-rouge">kubectl apply</co
             <span class="na">namespace</span><span class="pi">:</span> <span class="s">gloo-system</span>
       <span class="na">routePlugins</span><span class="pi">:</span>
         <span class="na">prefixRewrite</span><span class="pi">:</span>
-          <span class="na">prefixRewrite</span><span class="pi">:</span> <span class="s">/api/pets/</span>
-</code></pre></div></div>
+          <span class="na">prefixRewrite</span><span class="pi">:</span> <span class="s">/api/pets</span></code></pre></figure>
 
-<h2 id="summary">Summary</h2>
+<h1 id="summary">Summary</h1>
 
 <p>This post is just the beginning of our function gateway journey with Gloo. Hopefully its given you a taste of some
 more sophisticated function level routing options that are available to you. I’ll try to follow up with more posts on

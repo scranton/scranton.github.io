@@ -224,6 +224,10 @@ version to validate that its working correctly in production without risking too
 gain confidence in your new version, you can route more and more traffic to it until you cut over completely, i.e. 100%
 to new version, and decommission the old version.</p>
 
+<p>All of the Kubernetes manifests are located at <a href="https://github.com/scranton/gloo-canary-example">https://github.com/scranton/gloo-canary-example</a>. I’d suggest you clone
+that repo locally to make it easier to try these example yourself. All command examples assume your in the top level
+director of that repo.</p>
+
 <h2 id="review">Review</h2>
 
 <p>Quickly reviewing the previous 2 posts, we learned that Gloo can help with function level routing, and that routing can
@@ -345,70 +349,46 @@ curl <span class="k">${</span><span class="nv">PROXY_URL</span><span class="k">}
 and provide 2+ <code class="highlighter-rouge">destination</code>, which are <code class="highlighter-rouge">destinationSpec</code> with <code class="highlighter-rouge">weight</code>. For example, to route
 10% of request traffic to <code class="highlighter-rouge">findPetWithId</code> to <code class="highlighter-rouge">petstore-v2</code> and the remaining 90% to <code class="highlighter-rouge">petstore-v1</code>.</p>
 
-<div class="language-yaml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="s">cat &lt;&lt;EOF | kubectl apply -f -</span>
-<span class="nn">---</span>
-<span class="na">apiVersion</span><span class="pi">:</span> <span class="s">gateway.solo.io/v1</span>
-<span class="na">kind</span><span class="pi">:</span> <span class="s">VirtualService</span>
-<span class="na">metadata</span><span class="pi">:</span>
-  <span class="na">name</span><span class="pi">:</span> <span class="s">coalmine</span>
-  <span class="na">namespace</span><span class="pi">:</span> <span class="s">gloo-system</span>
-<span class="na">spec</span><span class="pi">:</span>
-  <span class="na">displayName</span><span class="pi">:</span> <span class="s">coalmine</span>
-  <span class="na">virtualHost</span><span class="pi">:</span>
-    <span class="na">domains</span><span class="pi">:</span>
-    <span class="pi">-</span> <span class="s1">'</span><span class="s">*'</span>
-    <span class="na">name</span><span class="pi">:</span> <span class="s">gloo-system.coalmine</span>
-    <span class="na">routes</span><span class="pi">:</span>
-    <span class="pi">-</span> <span class="na">matcher</span><span class="pi">:</span>
-        <span class="na">prefix</span><span class="pi">:</span> <span class="s">/findPets</span>
-      <span class="na">routeAction</span><span class="pi">:</span>
-        <span class="na">single</span><span class="pi">:</span>
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kubectl apply <span class="nt">-f</span> coalmine-virtual-service-part-3-weighted.yaml
+</code></pre></div></div>
+
+<p>Here’s the relevant part of the virtual service manifest showing the weighted destination spec.</p>
+
+<div class="github-sample-reference">
+  <div class="author-info">
+    <a href="https://github.com/scranton/gloo-canary-example/blob/master/coalmine-virtual-service-part-3-weighted.yaml">This Github Sample</a> is by <a href="https://github.com/scranton">scranton</a>
+  </div>
+  <div class="meta-info">
+    coalmine-virtual-service-part-3-weighted.yaml <a href="https://github.com/scranton/gloo-canary-example/blob/master/coalmine-virtual-service-part-3-weighted.yaml">view</a> <a href="https://raw.githubusercontent.com/scranton/gloo-canary-example/master/coalmine-virtual-service-part-3-weighted.yaml">raw</a>
+  </div>
+</div>
+
+<figure class="highlight"><pre><code class="language-yaml" data-lang="yaml">  <span class="na">routeAction</span><span class="pi">:</span>
+    <span class="na">multi</span><span class="pi">:</span>
+      <span class="na">destinations</span><span class="pi">:</span>
+      <span class="pi">-</span> <span class="na">destination</span><span class="pi">:</span>
           <span class="na">destinationSpec</span><span class="pi">:</span>
             <span class="na">rest</span><span class="pi">:</span>
-              <span class="na">functionName</span><span class="pi">:</span> <span class="s">findPets</span>
-              <span class="na">parameters</span><span class="pi">:</span> <span class="pi">{}</span>
+              <span class="na">functionName</span><span class="pi">:</span> <span class="s">findPetById</span>
+              <span class="na">parameters</span><span class="pi">:</span>
+                <span class="na">headers</span><span class="pi">:</span>
+                  <span class="s">:path</span><span class="pi">:</span> <span class="s">/findPetWithId/{id}</span>
           <span class="na">upstream</span><span class="pi">:</span>
             <span class="na">name</span><span class="pi">:</span> <span class="s">default-petstore-v2-8080</span>
             <span class="na">namespace</span><span class="pi">:</span> <span class="s">gloo-system</span>
-    <span class="pi">-</span> <span class="na">matcher</span><span class="pi">:</span>
-        <span class="na">prefix</span><span class="pi">:</span> <span class="s">/findPetWithId</span>
-      <span class="na">routeAction</span><span class="pi">:</span>
-        <span class="na">multi</span><span class="pi">:</span>
-          <span class="na">destinations</span><span class="pi">:</span>
-          <span class="pi">-</span> <span class="na">destination</span><span class="pi">:</span>
-              <span class="na">destinationSpec</span><span class="pi">:</span>
-                <span class="na">rest</span><span class="pi">:</span>
-                  <span class="na">functionName</span><span class="pi">:</span> <span class="s">findPetById</span>
-                  <span class="na">parameters</span><span class="pi">:</span>
-                    <span class="na">headers</span><span class="pi">:</span>
-                      <span class="s">:path</span><span class="pi">:</span> <span class="s">/findPetWithId/{id}</span>
-              <span class="na">upstream</span><span class="pi">:</span>
-                <span class="na">name</span><span class="pi">:</span> <span class="s">default-petstore-v2-8080</span>
-                <span class="na">namespace</span><span class="pi">:</span> <span class="s">gloo-system</span>
-            <span class="na">weight</span><span class="pi">:</span> <span class="s">10</span>
-          <span class="pi">-</span> <span class="na">destination</span><span class="pi">:</span>
-              <span class="na">destinationSpec</span><span class="pi">:</span>
-                <span class="na">rest</span><span class="pi">:</span>
-                  <span class="na">functionName</span><span class="pi">:</span> <span class="s">findPetById</span>
-                  <span class="na">parameters</span><span class="pi">:</span>
-                    <span class="na">headers</span><span class="pi">:</span>
-                      <span class="s">:path</span><span class="pi">:</span> <span class="s">/findPetWithId/{id}</span>
-              <span class="na">upstream</span><span class="pi">:</span>
-                <span class="na">name</span><span class="pi">:</span> <span class="s">default-petstore-v1-8080</span>
-                <span class="na">namespace</span><span class="pi">:</span> <span class="s">gloo-system</span>
-            <span class="na">weight</span><span class="pi">:</span> <span class="s">90</span>
-    <span class="pi">-</span> <span class="na">matcher</span><span class="pi">:</span>
-        <span class="na">prefix</span><span class="pi">:</span> <span class="s">/petstore</span>
-      <span class="na">routeAction</span><span class="pi">:</span>
-        <span class="na">single</span><span class="pi">:</span>
+        <span class="na">weight</span><span class="pi">:</span> <span class="s">10</span>
+      <span class="pi">-</span> <span class="na">destination</span><span class="pi">:</span>
+          <span class="na">destinationSpec</span><span class="pi">:</span>
+            <span class="na">rest</span><span class="pi">:</span>
+              <span class="na">functionName</span><span class="pi">:</span> <span class="s">findPetById</span>
+              <span class="na">parameters</span><span class="pi">:</span>
+                <span class="na">headers</span><span class="pi">:</span>
+                  <span class="s">:path</span><span class="pi">:</span> <span class="s">/findPetWithId/{id}</span>
           <span class="na">upstream</span><span class="pi">:</span>
             <span class="na">name</span><span class="pi">:</span> <span class="s">default-petstore-v1-8080</span>
             <span class="na">namespace</span><span class="pi">:</span> <span class="s">gloo-system</span>
-      <span class="na">routePlugins</span><span class="pi">:</span>
-        <span class="na">prefixRewrite</span><span class="pi">:</span>
-          <span class="na">prefixRewrite</span><span class="pi">:</span> <span class="s">/api/pets/</span>
-<span class="s">EOF</span>
-</code></pre></div></div>
+        <span class="na">weight</span><span class="pi">:</span> <span class="s">90</span>
+<span class="pi">-</span> <span class="na">matcher</span><span class="pi">:</span></code></pre></figure>
 
 <p>Let’s run a shell loop to test, remember that <code class="highlighter-rouge">petstore-v2</code> responses have a <code class="highlighter-rouge">status</code> field of <code class="highlighter-rouge">v2</code>. The following
 command will call our function 20 times, and we should see ~2 responses (~10%) return with <code class="highlighter-rouge">"status":"v2"</code>.</p>
@@ -448,70 +428,44 @@ respective percentage to each destination. So if we set both route weights to <c
 of the request traffic. I’d recommend setting the values with a sum of 100 so they look like percentages for greater
 readability. The following example will update our routes to do 50/50 traffic split.</p>
 
-<div class="language-yaml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="s">cat &lt;&lt;EOF | kubectl apply -f -</span>
-<span class="nn">---</span>
-<span class="na">apiVersion</span><span class="pi">:</span> <span class="s">gateway.solo.io/v1</span>
-<span class="na">kind</span><span class="pi">:</span> <span class="s">VirtualService</span>
-<span class="na">metadata</span><span class="pi">:</span>
-  <span class="na">name</span><span class="pi">:</span> <span class="s">coalmine</span>
-  <span class="na">namespace</span><span class="pi">:</span> <span class="s">gloo-system</span>
-<span class="na">spec</span><span class="pi">:</span>
-  <span class="na">displayName</span><span class="pi">:</span> <span class="s">coalmine</span>
-  <span class="na">virtualHost</span><span class="pi">:</span>
-    <span class="na">domains</span><span class="pi">:</span>
-    <span class="pi">-</span> <span class="s1">'</span><span class="s">*'</span>
-    <span class="na">name</span><span class="pi">:</span> <span class="s">gloo-system.coalmine</span>
-    <span class="na">routes</span><span class="pi">:</span>
-    <span class="pi">-</span> <span class="na">matcher</span><span class="pi">:</span>
-        <span class="na">prefix</span><span class="pi">:</span> <span class="s">/findPets</span>
-      <span class="na">routeAction</span><span class="pi">:</span>
-        <span class="na">single</span><span class="pi">:</span>
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kubectl apply <span class="nt">-f</span> coalmine-virtual-service-part-3-weighted-50-50.yaml
+</code></pre></div></div>
+
+<div class="github-sample-reference">
+  <div class="author-info">
+    <a href="https://github.com/scranton/gloo-canary-example/blob/master/coalmine-virtual-service-part-3-weighted-50-50.yaml">This Github Sample</a> is by <a href="https://github.com/scranton">scranton</a>
+  </div>
+  <div class="meta-info">
+    coalmine-virtual-service-part-3-weighted-50-50.yaml <a href="https://github.com/scranton/gloo-canary-example/blob/master/coalmine-virtual-service-part-3-weighted-50-50.yaml">view</a> <a href="https://raw.githubusercontent.com/scranton/gloo-canary-example/master/coalmine-virtual-service-part-3-weighted-50-50.yaml">raw</a>
+  </div>
+</div>
+
+<figure class="highlight"><pre><code class="language-yaml" data-lang="yaml">  <span class="na">routeAction</span><span class="pi">:</span>
+    <span class="na">multi</span><span class="pi">:</span>
+      <span class="na">destinations</span><span class="pi">:</span>
+      <span class="pi">-</span> <span class="na">destination</span><span class="pi">:</span>
           <span class="na">destinationSpec</span><span class="pi">:</span>
             <span class="na">rest</span><span class="pi">:</span>
-              <span class="na">functionName</span><span class="pi">:</span> <span class="s">findPets</span>
-              <span class="na">parameters</span><span class="pi">:</span> <span class="pi">{}</span>
+              <span class="na">functionName</span><span class="pi">:</span> <span class="s">findPetById</span>
+              <span class="na">parameters</span><span class="pi">:</span>
+                <span class="na">headers</span><span class="pi">:</span>
+                  <span class="s">:path</span><span class="pi">:</span> <span class="s">/findPetWithId/{id}</span>
           <span class="na">upstream</span><span class="pi">:</span>
             <span class="na">name</span><span class="pi">:</span> <span class="s">default-petstore-v2-8080</span>
             <span class="na">namespace</span><span class="pi">:</span> <span class="s">gloo-system</span>
-    <span class="pi">-</span> <span class="na">matcher</span><span class="pi">:</span>
-        <span class="na">prefix</span><span class="pi">:</span> <span class="s">/findPetWithId</span>
-      <span class="na">routeAction</span><span class="pi">:</span>
-        <span class="na">multi</span><span class="pi">:</span>
-          <span class="na">destinations</span><span class="pi">:</span>
-          <span class="pi">-</span> <span class="na">destination</span><span class="pi">:</span>
-              <span class="na">destinationSpec</span><span class="pi">:</span>
-                <span class="na">rest</span><span class="pi">:</span>
-                  <span class="na">functionName</span><span class="pi">:</span> <span class="s">findPetById</span>
-                  <span class="na">parameters</span><span class="pi">:</span>
-                    <span class="na">headers</span><span class="pi">:</span>
-                      <span class="s">:path</span><span class="pi">:</span> <span class="s">/findPetWithId/{id}</span>
-              <span class="na">upstream</span><span class="pi">:</span>
-                <span class="na">name</span><span class="pi">:</span> <span class="s">default-petstore-v2-8080</span>
-                <span class="na">namespace</span><span class="pi">:</span> <span class="s">gloo-system</span>
-            <span class="na">weight</span><span class="pi">:</span> <span class="s">50</span>
-          <span class="pi">-</span> <span class="na">destination</span><span class="pi">:</span>
-              <span class="na">destinationSpec</span><span class="pi">:</span>
-                <span class="na">rest</span><span class="pi">:</span>
-                  <span class="na">functionName</span><span class="pi">:</span> <span class="s">findPetById</span>
-                  <span class="na">parameters</span><span class="pi">:</span>
-                    <span class="na">headers</span><span class="pi">:</span>
-                      <span class="s">:path</span><span class="pi">:</span> <span class="s">/findPetWithId/{id}</span>
-              <span class="na">upstream</span><span class="pi">:</span>
-                <span class="na">name</span><span class="pi">:</span> <span class="s">default-petstore-v1-8080</span>
-                <span class="na">namespace</span><span class="pi">:</span> <span class="s">gloo-system</span>
-            <span class="na">weight</span><span class="pi">:</span> <span class="s">50</span>
-    <span class="pi">-</span> <span class="na">matcher</span><span class="pi">:</span>
-        <span class="na">prefix</span><span class="pi">:</span> <span class="s">/petstore</span>
-      <span class="na">routeAction</span><span class="pi">:</span>
-        <span class="na">single</span><span class="pi">:</span>
+        <span class="na">weight</span><span class="pi">:</span> <span class="s">50</span>
+      <span class="pi">-</span> <span class="na">destination</span><span class="pi">:</span>
+          <span class="na">destinationSpec</span><span class="pi">:</span>
+            <span class="na">rest</span><span class="pi">:</span>
+              <span class="na">functionName</span><span class="pi">:</span> <span class="s">findPetById</span>
+              <span class="na">parameters</span><span class="pi">:</span>
+                <span class="na">headers</span><span class="pi">:</span>
+                  <span class="s">:path</span><span class="pi">:</span> <span class="s">/findPetWithId/{id}</span>
           <span class="na">upstream</span><span class="pi">:</span>
             <span class="na">name</span><span class="pi">:</span> <span class="s">default-petstore-v1-8080</span>
             <span class="na">namespace</span><span class="pi">:</span> <span class="s">gloo-system</span>
-      <span class="na">routePlugins</span><span class="pi">:</span>
-        <span class="na">prefixRewrite</span><span class="pi">:</span>
-          <span class="na">prefixRewrite</span><span class="pi">:</span> <span class="s">/api/pets/</span>
-<span class="s">EOF</span>
-</code></pre></div></div>
+        <span class="na">weight</span><span class="pi">:</span> <span class="s">50</span>
+<span class="pi">-</span> <span class="na">matcher</span><span class="pi">:</span></code></pre></figure>
 
 <p>And if we run our test loop again, we should see about 10 of the 20 requests returning <code class="highlighter-rouge">"status":"v2</code>.</p>
 
