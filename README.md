@@ -8,6 +8,6 @@ Steps to publish:
 * `git publish-website` which consists of the following steps
     * `git branch -D master`
     * `git checkout -b master`
-    * `git filter-branch --subdirectory-filter _site/ -f --`
+    * `git filter-branch --subdirectory-filter _site/ -f`
     * `git checkout source`
     * `git push --all origin`
