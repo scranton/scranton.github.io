@@ -5,8 +5,8 @@
     <description>I lead Customer Success at Solo.io. I enjoy hacking tech, and writing about it.</description>
     <link>https://scott.cranton.com/</link>
     <atom:link href="https://scott.cranton.com/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Tue, 12 Mar 2019 14:53:43 -0400</pubDate>
-    <lastBuildDate>Tue, 12 Mar 2019 14:53:43 -0400</lastBuildDate>
+    <pubDate>Tue, 12 Mar 2019 17:00:22 -0400</pubDate>
+    <lastBuildDate>Tue, 12 Mar 2019 17:00:22 -0400</lastBuildDate>
     <generator>Jekyll v3.8.4</generator>
     
       <item>
@@ -33,6 +33,10 @@ traffic to the new version (the canary). For example, you could initially route 
 version to validate that its working correctly in production without risking too much if your new version fails. As you
 gain confidence in your new version, you can route more and more traffic to it until you cut over completely, i.e. 100%
 to new version, and decommission the old version.&lt;/p&gt;
+
+&lt;p&gt;All of the Kubernetes manifests are located at &lt;a href=&quot;https://github.com/scranton/gloo-canary-example&quot;&gt;https://github.com/scranton/gloo-canary-example&lt;/a&gt;. I’d suggest you clone
+that repo locally to make it easier to try these example yourself. All command examples assume your in the top level
+director of that repo.&lt;/p&gt;
 
 &lt;h2 id=&quot;review&quot;&gt;Review&lt;/h2&gt;
 
@@ -155,70 +159,46 @@ curl &lt;span class=&quot;k&quot;&gt;${&lt;/span&gt;&lt;span class=&quot;nv&quot
 and provide 2+ &lt;code class=&quot;highlighter-rouge&quot;&gt;destination&lt;/code&gt;, which are &lt;code class=&quot;highlighter-rouge&quot;&gt;destinationSpec&lt;/code&gt; with &lt;code class=&quot;highlighter-rouge&quot;&gt;weight&lt;/code&gt;. For example, to route
 10% of request traffic to &lt;code class=&quot;highlighter-rouge&quot;&gt;findPetWithId&lt;/code&gt; to &lt;code class=&quot;highlighter-rouge&quot;&gt;petstore-v2&lt;/code&gt; and the remaining 90% to &lt;code class=&quot;highlighter-rouge&quot;&gt;petstore-v1&lt;/code&gt;.&lt;/p&gt;
 
-&lt;div class=&quot;language-yaml highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;s&quot;&gt;cat &amp;lt;&amp;lt;EOF | kubectl apply -f -&lt;/span&gt;
-&lt;span class=&quot;nn&quot;&gt;---&lt;/span&gt;
-&lt;span class=&quot;na&quot;&gt;apiVersion&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;gateway.solo.io/v1&lt;/span&gt;
-&lt;span class=&quot;na&quot;&gt;kind&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;VirtualService&lt;/span&gt;
-&lt;span class=&quot;na&quot;&gt;metadata&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-  &lt;span class=&quot;na&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;coalmine&lt;/span&gt;
-  &lt;span class=&quot;na&quot;&gt;namespace&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;gloo-system&lt;/span&gt;
-&lt;span class=&quot;na&quot;&gt;spec&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-  &lt;span class=&quot;na&quot;&gt;displayName&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;coalmine&lt;/span&gt;
-  &lt;span class=&quot;na&quot;&gt;virtualHost&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-    &lt;span class=&quot;na&quot;&gt;domains&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-    &lt;span class=&quot;pi&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;'&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;*'&lt;/span&gt;
-    &lt;span class=&quot;na&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;gloo-system.coalmine&lt;/span&gt;
-    &lt;span class=&quot;na&quot;&gt;routes&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-    &lt;span class=&quot;pi&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;na&quot;&gt;matcher&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-        &lt;span class=&quot;na&quot;&gt;prefix&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;/findPets&lt;/span&gt;
-      &lt;span class=&quot;na&quot;&gt;routeAction&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-        &lt;span class=&quot;na&quot;&gt;single&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+&lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kubectl apply &lt;span class=&quot;nt&quot;&gt;-f&lt;/span&gt; coalmine-virtual-service-part-3-weighted.yaml
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Here’s the relevant part of the virtual service manifest showing the weighted destination spec.&lt;/p&gt;
+
+&lt;div class=&quot;github-sample-reference&quot;&gt;
+  &lt;div class=&quot;author-info&quot;&gt;
+    &lt;a href=&quot;https://github.com/scranton/gloo-canary-example/blob/master/coalmine-virtual-service-part-3-weighted.yaml&quot;&gt;This Github Sample&lt;/a&gt; is by &lt;a href=&quot;https://github.com/scranton&quot;&gt;scranton&lt;/a&gt;
+  &lt;/div&gt;
+  &lt;div class=&quot;meta-info&quot;&gt;
+    coalmine-virtual-service-part-3-weighted.yaml &lt;a href=&quot;https://github.com/scranton/gloo-canary-example/blob/master/coalmine-virtual-service-part-3-weighted.yaml&quot;&gt;view&lt;/a&gt; &lt;a href=&quot;https://raw.githubusercontent.com/scranton/gloo-canary-example/master/coalmine-virtual-service-part-3-weighted.yaml&quot;&gt;raw&lt;/a&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-yaml&quot; data-lang=&quot;yaml&quot;&gt;  &lt;span class=&quot;na&quot;&gt;routeAction&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;na&quot;&gt;multi&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+      &lt;span class=&quot;na&quot;&gt;destinations&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+      &lt;span class=&quot;pi&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;na&quot;&gt;destination&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
           &lt;span class=&quot;na&quot;&gt;destinationSpec&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
             &lt;span class=&quot;na&quot;&gt;rest&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-              &lt;span class=&quot;na&quot;&gt;functionName&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;findPets&lt;/span&gt;
-              &lt;span class=&quot;na&quot;&gt;parameters&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;pi&quot;&gt;{}&lt;/span&gt;
+              &lt;span class=&quot;na&quot;&gt;functionName&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;findPetById&lt;/span&gt;
+              &lt;span class=&quot;na&quot;&gt;parameters&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+                &lt;span class=&quot;na&quot;&gt;headers&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+                  &lt;span class=&quot;s&quot;&gt;:path&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;/findPetWithId/{id}&lt;/span&gt;
           &lt;span class=&quot;na&quot;&gt;upstream&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
             &lt;span class=&quot;na&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;default-petstore-v2-8080&lt;/span&gt;
             &lt;span class=&quot;na&quot;&gt;namespace&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;gloo-system&lt;/span&gt;
-    &lt;span class=&quot;pi&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;na&quot;&gt;matcher&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-        &lt;span class=&quot;na&quot;&gt;prefix&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;/findPetWithId&lt;/span&gt;
-      &lt;span class=&quot;na&quot;&gt;routeAction&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-        &lt;span class=&quot;na&quot;&gt;multi&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-          &lt;span class=&quot;na&quot;&gt;destinations&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-          &lt;span class=&quot;pi&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;na&quot;&gt;destination&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-              &lt;span class=&quot;na&quot;&gt;destinationSpec&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-                &lt;span class=&quot;na&quot;&gt;rest&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-                  &lt;span class=&quot;na&quot;&gt;functionName&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;findPetById&lt;/span&gt;
-                  &lt;span class=&quot;na&quot;&gt;parameters&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-                    &lt;span class=&quot;na&quot;&gt;headers&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-                      &lt;span class=&quot;s&quot;&gt;:path&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;/findPetWithId/{id}&lt;/span&gt;
-              &lt;span class=&quot;na&quot;&gt;upstream&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-                &lt;span class=&quot;na&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;default-petstore-v2-8080&lt;/span&gt;
-                &lt;span class=&quot;na&quot;&gt;namespace&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;gloo-system&lt;/span&gt;
-            &lt;span class=&quot;na&quot;&gt;weight&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;10&lt;/span&gt;
-          &lt;span class=&quot;pi&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;na&quot;&gt;destination&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-              &lt;span class=&quot;na&quot;&gt;destinationSpec&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-                &lt;span class=&quot;na&quot;&gt;rest&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-                  &lt;span class=&quot;na&quot;&gt;functionName&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;findPetById&lt;/span&gt;
-                  &lt;span class=&quot;na&quot;&gt;parameters&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-                    &lt;span class=&quot;na&quot;&gt;headers&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-                      &lt;span class=&quot;s&quot;&gt;:path&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;/findPetWithId/{id}&lt;/span&gt;
-              &lt;span class=&quot;na&quot;&gt;upstream&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-                &lt;span class=&quot;na&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;default-petstore-v1-8080&lt;/span&gt;
-                &lt;span class=&quot;na&quot;&gt;namespace&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;gloo-system&lt;/span&gt;
-            &lt;span class=&quot;na&quot;&gt;weight&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;90&lt;/span&gt;
-    &lt;span class=&quot;pi&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;na&quot;&gt;matcher&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-        &lt;span class=&quot;na&quot;&gt;prefix&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;/petstore&lt;/span&gt;
-      &lt;span class=&quot;na&quot;&gt;routeAction&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-        &lt;span class=&quot;na&quot;&gt;single&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+        &lt;span class=&quot;na&quot;&gt;weight&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;10&lt;/span&gt;
+      &lt;span class=&quot;pi&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;na&quot;&gt;destination&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+          &lt;span class=&quot;na&quot;&gt;destinationSpec&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+            &lt;span class=&quot;na&quot;&gt;rest&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+              &lt;span class=&quot;na&quot;&gt;functionName&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;findPetById&lt;/span&gt;
+              &lt;span class=&quot;na&quot;&gt;parameters&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+                &lt;span class=&quot;na&quot;&gt;headers&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+                  &lt;span class=&quot;s&quot;&gt;:path&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;/findPetWithId/{id}&lt;/span&gt;
           &lt;span class=&quot;na&quot;&gt;upstream&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
             &lt;span class=&quot;na&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;default-petstore-v1-8080&lt;/span&gt;
             &lt;span class=&quot;na&quot;&gt;namespace&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;gloo-system&lt;/span&gt;
-      &lt;span class=&quot;na&quot;&gt;routePlugins&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-        &lt;span class=&quot;na&quot;&gt;prefixRewrite&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-          &lt;span class=&quot;na&quot;&gt;prefixRewrite&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;/api/pets/&lt;/span&gt;
-&lt;span class=&quot;s&quot;&gt;EOF&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+        &lt;span class=&quot;na&quot;&gt;weight&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;90&lt;/span&gt;
+&lt;span class=&quot;pi&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;na&quot;&gt;matcher&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
 
 &lt;p&gt;Let’s run a shell loop to test, remember that &lt;code class=&quot;highlighter-rouge&quot;&gt;petstore-v2&lt;/code&gt; responses have a &lt;code class=&quot;highlighter-rouge&quot;&gt;status&lt;/code&gt; field of &lt;code class=&quot;highlighter-rouge&quot;&gt;v2&lt;/code&gt;. The following
 command will call our function 20 times, and we should see ~2 responses (~10%) return with &lt;code class=&quot;highlighter-rouge&quot;&gt;&quot;status&quot;:&quot;v2&quot;&lt;/code&gt;.&lt;/p&gt;
@@ -258,70 +238,44 @@ respective percentage to each destination. So if we set both route weights to &l
 of the request traffic. I’d recommend setting the values with a sum of 100 so they look like percentages for greater
 readability. The following example will update our routes to do 50/50 traffic split.&lt;/p&gt;
 
-&lt;div class=&quot;language-yaml highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;s&quot;&gt;cat &amp;lt;&amp;lt;EOF | kubectl apply -f -&lt;/span&gt;
-&lt;span class=&quot;nn&quot;&gt;---&lt;/span&gt;
-&lt;span class=&quot;na&quot;&gt;apiVersion&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;gateway.solo.io/v1&lt;/span&gt;
-&lt;span class=&quot;na&quot;&gt;kind&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;VirtualService&lt;/span&gt;
-&lt;span class=&quot;na&quot;&gt;metadata&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-  &lt;span class=&quot;na&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;coalmine&lt;/span&gt;
-  &lt;span class=&quot;na&quot;&gt;namespace&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;gloo-system&lt;/span&gt;
-&lt;span class=&quot;na&quot;&gt;spec&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-  &lt;span class=&quot;na&quot;&gt;displayName&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;coalmine&lt;/span&gt;
-  &lt;span class=&quot;na&quot;&gt;virtualHost&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-    &lt;span class=&quot;na&quot;&gt;domains&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-    &lt;span class=&quot;pi&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;'&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;*'&lt;/span&gt;
-    &lt;span class=&quot;na&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;gloo-system.coalmine&lt;/span&gt;
-    &lt;span class=&quot;na&quot;&gt;routes&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-    &lt;span class=&quot;pi&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;na&quot;&gt;matcher&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-        &lt;span class=&quot;na&quot;&gt;prefix&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;/findPets&lt;/span&gt;
-      &lt;span class=&quot;na&quot;&gt;routeAction&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-        &lt;span class=&quot;na&quot;&gt;single&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+&lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kubectl apply &lt;span class=&quot;nt&quot;&gt;-f&lt;/span&gt; coalmine-virtual-service-part-3-weighted-50-50.yaml
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;div class=&quot;github-sample-reference&quot;&gt;
+  &lt;div class=&quot;author-info&quot;&gt;
+    &lt;a href=&quot;https://github.com/scranton/gloo-canary-example/blob/master/coalmine-virtual-service-part-3-weighted-50-50.yaml&quot;&gt;This Github Sample&lt;/a&gt; is by &lt;a href=&quot;https://github.com/scranton&quot;&gt;scranton&lt;/a&gt;
+  &lt;/div&gt;
+  &lt;div class=&quot;meta-info&quot;&gt;
+    coalmine-virtual-service-part-3-weighted-50-50.yaml &lt;a href=&quot;https://github.com/scranton/gloo-canary-example/blob/master/coalmine-virtual-service-part-3-weighted-50-50.yaml&quot;&gt;view&lt;/a&gt; &lt;a href=&quot;https://raw.githubusercontent.com/scranton/gloo-canary-example/master/coalmine-virtual-service-part-3-weighted-50-50.yaml&quot;&gt;raw&lt;/a&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-yaml&quot; data-lang=&quot;yaml&quot;&gt;  &lt;span class=&quot;na&quot;&gt;routeAction&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;na&quot;&gt;multi&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+      &lt;span class=&quot;na&quot;&gt;destinations&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+      &lt;span class=&quot;pi&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;na&quot;&gt;destination&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
           &lt;span class=&quot;na&quot;&gt;destinationSpec&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
             &lt;span class=&quot;na&quot;&gt;rest&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-              &lt;span class=&quot;na&quot;&gt;functionName&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;findPets&lt;/span&gt;
-              &lt;span class=&quot;na&quot;&gt;parameters&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;pi&quot;&gt;{}&lt;/span&gt;
+              &lt;span class=&quot;na&quot;&gt;functionName&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;findPetById&lt;/span&gt;
+              &lt;span class=&quot;na&quot;&gt;parameters&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+                &lt;span class=&quot;na&quot;&gt;headers&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+                  &lt;span class=&quot;s&quot;&gt;:path&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;/findPetWithId/{id}&lt;/span&gt;
           &lt;span class=&quot;na&quot;&gt;upstream&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
             &lt;span class=&quot;na&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;default-petstore-v2-8080&lt;/span&gt;
             &lt;span class=&quot;na&quot;&gt;namespace&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;gloo-system&lt;/span&gt;
-    &lt;span class=&quot;pi&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;na&quot;&gt;matcher&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-        &lt;span class=&quot;na&quot;&gt;prefix&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;/findPetWithId&lt;/span&gt;
-      &lt;span class=&quot;na&quot;&gt;routeAction&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-        &lt;span class=&quot;na&quot;&gt;multi&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-          &lt;span class=&quot;na&quot;&gt;destinations&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-          &lt;span class=&quot;pi&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;na&quot;&gt;destination&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-              &lt;span class=&quot;na&quot;&gt;destinationSpec&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-                &lt;span class=&quot;na&quot;&gt;rest&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-                  &lt;span class=&quot;na&quot;&gt;functionName&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;findPetById&lt;/span&gt;
-                  &lt;span class=&quot;na&quot;&gt;parameters&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-                    &lt;span class=&quot;na&quot;&gt;headers&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-                      &lt;span class=&quot;s&quot;&gt;:path&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;/findPetWithId/{id}&lt;/span&gt;
-              &lt;span class=&quot;na&quot;&gt;upstream&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-                &lt;span class=&quot;na&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;default-petstore-v2-8080&lt;/span&gt;
-                &lt;span class=&quot;na&quot;&gt;namespace&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;gloo-system&lt;/span&gt;
-            &lt;span class=&quot;na&quot;&gt;weight&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;50&lt;/span&gt;
-          &lt;span class=&quot;pi&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;na&quot;&gt;destination&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-              &lt;span class=&quot;na&quot;&gt;destinationSpec&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-                &lt;span class=&quot;na&quot;&gt;rest&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-                  &lt;span class=&quot;na&quot;&gt;functionName&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;findPetById&lt;/span&gt;
-                  &lt;span class=&quot;na&quot;&gt;parameters&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-                    &lt;span class=&quot;na&quot;&gt;headers&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-                      &lt;span class=&quot;s&quot;&gt;:path&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;/findPetWithId/{id}&lt;/span&gt;
-              &lt;span class=&quot;na&quot;&gt;upstream&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-                &lt;span class=&quot;na&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;default-petstore-v1-8080&lt;/span&gt;
-                &lt;span class=&quot;na&quot;&gt;namespace&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;gloo-system&lt;/span&gt;
-            &lt;span class=&quot;na&quot;&gt;weight&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;50&lt;/span&gt;
-    &lt;span class=&quot;pi&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;na&quot;&gt;matcher&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-        &lt;span class=&quot;na&quot;&gt;prefix&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;/petstore&lt;/span&gt;
-      &lt;span class=&quot;na&quot;&gt;routeAction&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-        &lt;span class=&quot;na&quot;&gt;single&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+        &lt;span class=&quot;na&quot;&gt;weight&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;50&lt;/span&gt;
+      &lt;span class=&quot;pi&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;na&quot;&gt;destination&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+          &lt;span class=&quot;na&quot;&gt;destinationSpec&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+            &lt;span class=&quot;na&quot;&gt;rest&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+              &lt;span class=&quot;na&quot;&gt;functionName&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;findPetById&lt;/span&gt;
+              &lt;span class=&quot;na&quot;&gt;parameters&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+                &lt;span class=&quot;na&quot;&gt;headers&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+                  &lt;span class=&quot;s&quot;&gt;:path&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;/findPetWithId/{id}&lt;/span&gt;
           &lt;span class=&quot;na&quot;&gt;upstream&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
             &lt;span class=&quot;na&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;default-petstore-v1-8080&lt;/span&gt;
             &lt;span class=&quot;na&quot;&gt;namespace&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;gloo-system&lt;/span&gt;
-      &lt;span class=&quot;na&quot;&gt;routePlugins&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-        &lt;span class=&quot;na&quot;&gt;prefixRewrite&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-          &lt;span class=&quot;na&quot;&gt;prefixRewrite&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;/api/pets/&lt;/span&gt;
-&lt;span class=&quot;s&quot;&gt;EOF&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+        &lt;span class=&quot;na&quot;&gt;weight&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;50&lt;/span&gt;
+&lt;span class=&quot;pi&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;na&quot;&gt;matcher&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
 
 &lt;p&gt;And if we run our test loop again, we should see about 10 of the 20 requests returning &lt;code class=&quot;highlighter-rouge&quot;&gt;&quot;status&quot;:&quot;v2&lt;/code&gt;.&lt;/p&gt;
 
@@ -402,7 +356,7 @@ presence of a request header &lt;code class=&quot;highlighter-rouge&quot;&gt;x-c
 Then once we’re happy with our new version, we will update the route so all requests now go to version 2 of our
 service. All without changing or even redeploying our 2 services. But first, let’s set some context…&lt;/p&gt;
 
-&lt;h2 id=&quot;background&quot;&gt;Background&lt;/h2&gt;
+&lt;h1 id=&quot;background&quot;&gt;Background&lt;/h1&gt;
 
 &lt;figure class=&quot;quote&quot;&gt;
   &lt;blockquote&gt;
@@ -439,7 +393,11 @@ website. On to the example…&lt;/p&gt;
 post, and that you’ve already got a Kubernetes environment setup with Gloo. If not, please refer back to that post for
 setup instructions and the basics of &lt;code class=&quot;highlighter-rouge&quot;&gt;VirtualServices&lt;/code&gt; and &lt;code class=&quot;highlighter-rouge&quot;&gt;Routes&lt;/code&gt; with Gloo.&lt;/p&gt;
 
-&lt;h2 id=&quot;review&quot;&gt;Review&lt;/h2&gt;
+&lt;p&gt;All of the Kubernetes manifests are located at &lt;a href=&quot;https://github.com/scranton/gloo-canary-example&quot;&gt;https://github.com/scranton/gloo-canary-example&lt;/a&gt;. I’d suggest you clone
+that repo locally to make it easier to try these example yourself. All command examples assume your in the top level
+director of that repo.&lt;/p&gt;
+
+&lt;h1 id=&quot;review&quot;&gt;Review&lt;/h1&gt;
 
 &lt;p&gt;In the previous post, we had a single service &lt;code class=&quot;highlighter-rouge&quot;&gt;petstore-v1&lt;/code&gt;, and we setup Gloo to route requests to its &lt;code class=&quot;highlighter-rouge&quot;&gt;findPets&lt;/code&gt;
 REST function. Let’s test that its still working as expected. Remember we need to get Gloo’s proxy url by calling the
@@ -453,93 +411,97 @@ curl &lt;span class=&quot;k&quot;&gt;${&lt;/span&gt;&lt;span class=&quot;nv&quot
 &lt;div class=&quot;language-json highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;p&quot;&gt;[{&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;id&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;name&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;Dog&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;status&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;available&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;},{&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;id&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;name&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;Cat&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;status&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;pending&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}]&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
 &lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-&lt;h2 id=&quot;canary-routing&quot;&gt;Canary Routing&lt;/h2&gt;
+&lt;h1 id=&quot;canary-routing&quot;&gt;Canary Routing&lt;/h1&gt;
 
 &lt;p&gt;Now let’s deploy a version 2 of our service, and let’s setup a canary route for the &lt;code class=&quot;highlighter-rouge&quot;&gt;findPets&lt;/code&gt; function. That is, by
 default we’ll route to version 1 of the function, and if there is a request header &lt;code class=&quot;highlighter-rouge&quot;&gt;x-canary:true&lt;/code&gt; set, we’ll route that
 request to version 2 of our function.&lt;/p&gt;
 
-&lt;h3 id=&quot;install-and-verify-petstore-version-2&quot;&gt;Install and verify petstore version 2&lt;/h3&gt;
+&lt;h2 id=&quot;install-and-verify-petstore-version-2-example-service&quot;&gt;Install and verify petstore version 2 example service&lt;/h2&gt;
 
-&lt;ol&gt;
-  &lt;li&gt;
-    &lt;p&gt;Let’s first deploy version 2 of our petstore service. This version has been modified to return 3 pets.&lt;/p&gt;
+&lt;p&gt;Let’s first deploy version 2 of our petstore service. This version has been modified to return 3 pets.&lt;/p&gt;
 
-    &lt;div class=&quot;language-yaml highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;s&quot;&gt;cat &amp;lt;&amp;lt;EOF | kubectl apply -f -&lt;/span&gt;
-&lt;span class=&quot;nn&quot;&gt;---&lt;/span&gt;
+&lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kubectl apply &lt;span class=&quot;nt&quot;&gt;-f&lt;/span&gt; petstore-v2.yaml
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;div class=&quot;github-sample-reference&quot;&gt;
+  &lt;div class=&quot;author-info&quot;&gt;
+    &lt;a href=&quot;https://github.com/scranton/gloo-canary-example/blob/master/petstore-v2.yaml&quot;&gt;This Github Sample&lt;/a&gt; is by &lt;a href=&quot;https://github.com/scranton&quot;&gt;scranton&lt;/a&gt;
+  &lt;/div&gt;
+  &lt;div class=&quot;meta-info&quot;&gt;
+    petstore-v2.yaml &lt;a href=&quot;https://github.com/scranton/gloo-canary-example/blob/master/petstore-v2.yaml&quot;&gt;view&lt;/a&gt; &lt;a href=&quot;https://raw.githubusercontent.com/scranton/gloo-canary-example/master/petstore-v2.yaml&quot;&gt;raw&lt;/a&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-yaml&quot; data-lang=&quot;yaml&quot;&gt;&lt;span class=&quot;nn&quot;&gt;---&lt;/span&gt;
 &lt;span class=&quot;c1&quot;&gt;# petstore-v2&lt;/span&gt;
 &lt;span class=&quot;na&quot;&gt;apiVersion&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;v1&lt;/span&gt;
 &lt;span class=&quot;na&quot;&gt;kind&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;Service&lt;/span&gt;
 &lt;span class=&quot;na&quot;&gt;metadata&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-  &lt;span class=&quot;na&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;petstore-v2&lt;/span&gt;
-  &lt;span class=&quot;na&quot;&gt;namespace&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;default&lt;/span&gt;
-  &lt;span class=&quot;na&quot;&gt;labels&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-    &lt;span class=&quot;na&quot;&gt;app&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;petstore-v2&lt;/span&gt;
+ &lt;span class=&quot;na&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;petstore-v2&lt;/span&gt;
+ &lt;span class=&quot;na&quot;&gt;namespace&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;default&lt;/span&gt;
+ &lt;span class=&quot;na&quot;&gt;labels&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+   &lt;span class=&quot;na&quot;&gt;app&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;petstore-v2&lt;/span&gt;
 &lt;span class=&quot;na&quot;&gt;spec&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-  &lt;span class=&quot;na&quot;&gt;type&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;ClusterIP&lt;/span&gt;
-  &lt;span class=&quot;na&quot;&gt;ports&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-  &lt;span class=&quot;pi&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;na&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;http&lt;/span&gt;
-    &lt;span class=&quot;na&quot;&gt;port&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;8080&lt;/span&gt;
-    &lt;span class=&quot;na&quot;&gt;targetPort&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;8080&lt;/span&gt;
-    &lt;span class=&quot;na&quot;&gt;protocol&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;TCP&lt;/span&gt;
-  &lt;span class=&quot;na&quot;&gt;selector&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-    &lt;span class=&quot;na&quot;&gt;app&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;petstore-v2&lt;/span&gt;
+ &lt;span class=&quot;na&quot;&gt;type&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;ClusterIP&lt;/span&gt;
+ &lt;span class=&quot;na&quot;&gt;ports&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+ &lt;span class=&quot;pi&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;na&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;http&lt;/span&gt;
+   &lt;span class=&quot;na&quot;&gt;port&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;8080&lt;/span&gt;
+   &lt;span class=&quot;na&quot;&gt;targetPort&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;8080&lt;/span&gt;
+   &lt;span class=&quot;na&quot;&gt;protocol&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;TCP&lt;/span&gt;
+ &lt;span class=&quot;na&quot;&gt;selector&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+   &lt;span class=&quot;na&quot;&gt;app&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;petstore-v2&lt;/span&gt;
 &lt;span class=&quot;nn&quot;&gt;---&lt;/span&gt;
 &lt;span class=&quot;na&quot;&gt;apiVersion&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;apps/v1&lt;/span&gt;
 &lt;span class=&quot;na&quot;&gt;kind&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;Deployment&lt;/span&gt;
 &lt;span class=&quot;na&quot;&gt;metadata&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-  &lt;span class=&quot;na&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;petstore-v2&lt;/span&gt;
-  &lt;span class=&quot;na&quot;&gt;namespace&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;default&lt;/span&gt;
-  &lt;span class=&quot;na&quot;&gt;labels&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-    &lt;span class=&quot;na&quot;&gt;app&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;petstore-v2&lt;/span&gt;
+ &lt;span class=&quot;na&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;petstore-v2&lt;/span&gt;
+ &lt;span class=&quot;na&quot;&gt;namespace&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;default&lt;/span&gt;
+ &lt;span class=&quot;na&quot;&gt;labels&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+   &lt;span class=&quot;na&quot;&gt;app&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;petstore-v2&lt;/span&gt;
 &lt;span class=&quot;na&quot;&gt;spec&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-  &lt;span class=&quot;na&quot;&gt;replicas&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;1&lt;/span&gt;
-  &lt;span class=&quot;na&quot;&gt;selector&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-    &lt;span class=&quot;na&quot;&gt;matchLabels&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-      &lt;span class=&quot;na&quot;&gt;app&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;petstore-v2&lt;/span&gt;
-  &lt;span class=&quot;na&quot;&gt;template&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-    &lt;span class=&quot;na&quot;&gt;metadata&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-      &lt;span class=&quot;na&quot;&gt;labels&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-        &lt;span class=&quot;na&quot;&gt;app&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;petstore-v2&lt;/span&gt;
-    &lt;span class=&quot;na&quot;&gt;spec&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-      &lt;span class=&quot;na&quot;&gt;containers&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-      &lt;span class=&quot;pi&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;na&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;petstore-v2&lt;/span&gt;
-        &lt;span class=&quot;na&quot;&gt;image&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;scottcranton/petstore:v2&lt;/span&gt;
-        &lt;span class=&quot;na&quot;&gt;ports&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-        &lt;span class=&quot;pi&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;na&quot;&gt;containerPort&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;8080&lt;/span&gt;
-&lt;span class=&quot;s&quot;&gt;EOF&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
-  &lt;/li&gt;
-  &lt;li&gt;
-    &lt;p&gt;Verify its setup right&lt;/p&gt;
+ &lt;span class=&quot;na&quot;&gt;replicas&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;1&lt;/span&gt;
+ &lt;span class=&quot;na&quot;&gt;selector&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+   &lt;span class=&quot;na&quot;&gt;matchLabels&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+     &lt;span class=&quot;na&quot;&gt;app&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;petstore-v2&lt;/span&gt;
+ &lt;span class=&quot;na&quot;&gt;template&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+   &lt;span class=&quot;na&quot;&gt;metadata&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+     &lt;span class=&quot;na&quot;&gt;labels&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+       &lt;span class=&quot;na&quot;&gt;app&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;petstore-v2&lt;/span&gt;
+   &lt;span class=&quot;na&quot;&gt;spec&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+     &lt;span class=&quot;na&quot;&gt;containers&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+     &lt;span class=&quot;pi&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;na&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;petstore-v2&lt;/span&gt;
+       &lt;span class=&quot;na&quot;&gt;image&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;scottcranton/petstore:v2&lt;/span&gt;
+       &lt;span class=&quot;na&quot;&gt;ports&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+       &lt;span class=&quot;pi&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;na&quot;&gt;containerPort&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;8080&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
 
-    &lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kubectl get services &lt;span class=&quot;nt&quot;&gt;--namespace&lt;/span&gt; default
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
+&lt;p&gt;Verify its setup right&lt;/p&gt;
 
-    &lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;NAME          TYPE        CLUSTER-IP      EXTERNAL-IP   PORT&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;S&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;    AGE
-kubernetes    ClusterIP   10.96.0.1       &amp;lt;none&amp;gt;        443/TCP    16h
-petstore-v1   ClusterIP   10.97.235.37    &amp;lt;none&amp;gt;        8080/TCP   15m
-petstore-v2   ClusterIP   10.105.156.10   &amp;lt;none&amp;gt;        8080/TCP   37s
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
+&lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kubectl get services &lt;span class=&quot;nt&quot;&gt;--namespace&lt;/span&gt; default
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-    &lt;p&gt;Now let’s setup a port forward to see if it works. When we do a &lt;code class=&quot;highlighter-rouge&quot;&gt;GET&lt;/code&gt; against &lt;code class=&quot;highlighter-rouge&quot;&gt;/api/pets&lt;/code&gt; we should get back 3 pets.&lt;/p&gt;
+&lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;NAME          TYPE        CLUSTER-IP      EXTERNAL-IP   PORT&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;S&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;    AGE
+kubernetes    ClusterIP   10.96.0.1       &amp;lt;none&amp;gt;        443/TCP    22h
+petstore-v1   ClusterIP   10.110.99.86    &amp;lt;none&amp;gt;        8080/TCP   33m
+petstore-v2   ClusterIP   10.109.91.120   &amp;lt;none&amp;gt;        8080/TCP   6s
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-    &lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kubectl port-forward services/petstore-v2 8080:8080
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
+&lt;p&gt;Now let’s setup a port forward to see if it works. When we do a &lt;code class=&quot;highlighter-rouge&quot;&gt;GET&lt;/code&gt; against &lt;code class=&quot;highlighter-rouge&quot;&gt;/api/pets&lt;/code&gt; we should get back 3 pets.&lt;/p&gt;
 
-    &lt;p&gt;And in a different terminal, run the following to see if we get back 3 pets for version 2 of our service.&lt;/p&gt;
+&lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kubectl port-forward services/petstore-v2 8080:8080
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-    &lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;curl localhost:8080/api/pets
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
+&lt;p&gt;And in a different terminal, run the following to see if we get back 3 pets for version 2 of our service.&lt;/p&gt;
 
-    &lt;div class=&quot;language-json highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;p&quot;&gt;[{&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;id&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;name&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;Dog&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;status&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;v2&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;},{&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;id&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;name&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;Cat&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;status&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;v2&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;},{&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;id&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;3&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;name&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;Parrot&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;status&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;v2&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}]&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
-&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
-  &lt;/li&gt;
-&lt;/ol&gt;
+&lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;curl localhost:8080/api/pets
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;div class=&quot;language-json highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;p&quot;&gt;[{&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;id&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;name&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;Dog&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;status&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;v2&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;},{&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;id&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;name&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;Cat&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;status&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;v2&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;},{&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;id&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;3&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;name&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;Parrot&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;status&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;v2&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}]&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
 &lt;p&gt;You should kill all port forwarding as we’ll use Gloo to proxy future tests.&lt;/p&gt;
 
-&lt;h3 id=&quot;setup-canary-route&quot;&gt;Setup Canary Route&lt;/h3&gt;
+&lt;h2 id=&quot;setup-canary-route&quot;&gt;Setup Canary Route&lt;/h2&gt;
 
 &lt;p&gt;Let’s setup a new function route rule for petstore version 2 &lt;code class=&quot;highlighter-rouge&quot;&gt;findPets&lt;/code&gt; function that depends on the presence of the
 &lt;code class=&quot;highlighter-rouge&quot;&gt;x-canary:true&lt;/code&gt; request header.&lt;/p&gt;
@@ -578,7 +540,16 @@ petstore-v2   ClusterIP   10.105.156.10   &amp;lt;none&amp;gt;        8080/TCP  
 
 &lt;p&gt;Here’s the complete YAML for our &lt;code class=&quot;highlighter-rouge&quot;&gt;coalmine&lt;/code&gt; virtual service that you could &lt;code class=&quot;highlighter-rouge&quot;&gt;kubectl apply&lt;/code&gt; if you wanted to recreate&lt;/p&gt;
 
-&lt;div class=&quot;language-yaml highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;na&quot;&gt;apiVersion&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;gateway.solo.io/v1&lt;/span&gt;
+&lt;div class=&quot;github-sample-reference&quot;&gt;
+  &lt;div class=&quot;author-info&quot;&gt;
+    &lt;a href=&quot;https://github.com/scranton/gloo-canary-example/blob/master/coalmine-virtual-service-part-2-header.yaml&quot;&gt;This Github Sample&lt;/a&gt; is by &lt;a href=&quot;https://github.com/scranton&quot;&gt;scranton&lt;/a&gt;
+  &lt;/div&gt;
+  &lt;div class=&quot;meta-info&quot;&gt;
+    coalmine-virtual-service-part-2-header.yaml &lt;a href=&quot;https://github.com/scranton/gloo-canary-example/blob/master/coalmine-virtual-service-part-2-header.yaml&quot;&gt;view&lt;/a&gt; &lt;a href=&quot;https://raw.githubusercontent.com/scranton/gloo-canary-example/master/coalmine-virtual-service-part-2-header.yaml&quot;&gt;raw&lt;/a&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-yaml&quot; data-lang=&quot;yaml&quot;&gt;&lt;span class=&quot;na&quot;&gt;apiVersion&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;gateway.solo.io/v1&lt;/span&gt;
 &lt;span class=&quot;na&quot;&gt;kind&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;VirtualService&lt;/span&gt;
 &lt;span class=&quot;na&quot;&gt;metadata&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
   &lt;span class=&quot;na&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;coalmine&lt;/span&gt;
@@ -638,8 +609,17 @@ petstore-v2   ClusterIP   10.105.156.10   &amp;lt;none&amp;gt;        8080/TCP  
             &lt;span class=&quot;na&quot;&gt;namespace&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;gloo-system&lt;/span&gt;
       &lt;span class=&quot;na&quot;&gt;routePlugins&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
         &lt;span class=&quot;na&quot;&gt;prefixRewrite&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-          &lt;span class=&quot;na&quot;&gt;prefixRewrite&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;/api/pets/&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+          &lt;span class=&quot;na&quot;&gt;prefixRewrite&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;/api/pets&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;The part of the virtual service manifest that is specifying the header based routing is highlighted as follows.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-yaml&quot; data-lang=&quot;yaml&quot;&gt;&lt;span class=&quot;pi&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;na&quot;&gt;matcher&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;na&quot;&gt;headers&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;pi&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;na&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;x-canary&lt;/span&gt;
+      &lt;span class=&quot;na&quot;&gt;regex&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;true&lt;/span&gt;
+      &lt;span class=&quot;na&quot;&gt;value&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;true&quot;&lt;/span&gt;
+    &lt;span class=&quot;na&quot;&gt;prefix&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;/findPets&lt;/span&gt;
+  &lt;span class=&quot;na&quot;&gt;routeAction&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
 
 &lt;h3 id=&quot;make-version-2-the-default-for-all-requests&quot;&gt;Make version 2 the default for all requests&lt;/h3&gt;
 
@@ -654,8 +634,16 @@ a new service version.&lt;/p&gt;
 &lt;p&gt;The easiest way to make change the routing rules to route all requests to version 2 &lt;code class=&quot;highlighter-rouge&quot;&gt;findPets&lt;/code&gt; is by applying a YAML
 file. You can use the &lt;code class=&quot;highlighter-rouge&quot;&gt;glooctl&lt;/code&gt; command line tool to add and remove routes, but it takes several calls.&lt;/p&gt;
 
-&lt;div class=&quot;language-yaml highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;s&quot;&gt;cat &amp;lt;&amp;lt;EOF | kubectl apply -f -&lt;/span&gt;
-&lt;span class=&quot;na&quot;&gt;apiVersion&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;gateway.solo.io/v1&lt;/span&gt;
+&lt;div class=&quot;github-sample-reference&quot;&gt;
+  &lt;div class=&quot;author-info&quot;&gt;
+    &lt;a href=&quot;https://github.com/scranton/gloo-canary-example/blob/master/coalmine-virtual-service-part-2-v2.yaml&quot;&gt;This Github Sample&lt;/a&gt; is by &lt;a href=&quot;https://github.com/scranton&quot;&gt;scranton&lt;/a&gt;
+  &lt;/div&gt;
+  &lt;div class=&quot;meta-info&quot;&gt;
+    coalmine-virtual-service-part-2-v2.yaml &lt;a href=&quot;https://github.com/scranton/gloo-canary-example/blob/master/coalmine-virtual-service-part-2-v2.yaml&quot;&gt;view&lt;/a&gt; &lt;a href=&quot;https://raw.githubusercontent.com/scranton/gloo-canary-example/master/coalmine-virtual-service-part-2-v2.yaml&quot;&gt;raw&lt;/a&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-yaml&quot; data-lang=&quot;yaml&quot;&gt;&lt;span class=&quot;na&quot;&gt;apiVersion&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;gateway.solo.io/v1&lt;/span&gt;
 &lt;span class=&quot;na&quot;&gt;kind&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;VirtualService&lt;/span&gt;
 &lt;span class=&quot;na&quot;&gt;metadata&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
   &lt;span class=&quot;na&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;coalmine&lt;/span&gt;
@@ -700,11 +688,9 @@ file. You can use the &lt;code class=&quot;highlighter-rouge&quot;&gt;glooctl&lt
             &lt;span class=&quot;na&quot;&gt;namespace&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;gloo-system&lt;/span&gt;
       &lt;span class=&quot;na&quot;&gt;routePlugins&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
         &lt;span class=&quot;na&quot;&gt;prefixRewrite&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-          &lt;span class=&quot;na&quot;&gt;prefixRewrite&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;/api/pets/&lt;/span&gt;
-&lt;span class=&quot;s&quot;&gt;EOF&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+          &lt;span class=&quot;na&quot;&gt;prefixRewrite&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;/api/pets&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
 
-&lt;h2 id=&quot;summary&quot;&gt;Summary&lt;/h2&gt;
+&lt;h1 id=&quot;summary&quot;&gt;Summary&lt;/h1&gt;
 
 &lt;p&gt;This post has shown you have to leverage the Gloo function gateway to do a Canary Release of a new version of a function,
 and allow you to do very granular function level routing to validate your new function is working correctly. Then it showed
@@ -750,24 +736,36 @@ Lambda discovery and more. This post will start with a simple example of Gloo di
 service that exposes REST functions. Later posts will build on this initial example to do highlight ever more complex
 scenarios.&lt;/p&gt;
 
-&lt;h2 id=&quot;prerequisites&quot;&gt;Prerequisites&lt;/h2&gt;
+&lt;h1 id=&quot;prerequisites&quot;&gt;Prerequisites&lt;/h1&gt;
 
 &lt;p&gt;I’m assuming you’re already running a Kubernetes installation. I’m assuming you’re using &lt;a href=&quot;https://kubernetes.io/docs/setup/minikube/&quot;&gt;minikube&lt;/a&gt;
 for this post though any recent Kubernetes installation should work as long as you have &lt;a href=&quot;https://kubernetes.io/docs/tasks/tools/install-kubectl/&quot;&gt;kubectl&lt;/a&gt;
 setup and configured correctly for your Kubernetes installation.&lt;/p&gt;
 
-&lt;h2 id=&quot;setup&quot;&gt;Setup&lt;/h2&gt;
+&lt;h1 id=&quot;setup&quot;&gt;Setup&lt;/h1&gt;
 
-&lt;h3 id=&quot;setup-example-services&quot;&gt;Setup Example Services&lt;/h3&gt;
+&lt;h2 id=&quot;setup-example-service&quot;&gt;Setup example service&lt;/h2&gt;
 
-&lt;ol&gt;
-  &lt;li&gt;
-    &lt;p&gt;Let’s start by installing an example service that exposes 4 REST functions. This service is based on the
-&lt;a href=&quot;https://github.com/go-swagger/go-swagger/tree/master/examples/2.0/petstore&quot;&gt;go-swagger petstore example&lt;/a&gt;. I’m including
-the Kubernetes configuration YAML within this post for ease.&lt;/p&gt;
+&lt;p&gt;All of the Kubernetes manifests are located at &lt;a href=&quot;https://github.com/scranton/gloo-canary-example&quot;&gt;https://github.com/scranton/gloo-canary-example&lt;/a&gt;. I’d suggest you clone
+that repo locally to make it easier to try these example yourself. All command examples assume your in the top level
+director of that repo.&lt;/p&gt;
 
-    &lt;div class=&quot;language-yaml highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;s&quot;&gt;cat &amp;lt;&amp;lt;EOF | kubectl apply -f -&lt;/span&gt;
-&lt;span class=&quot;nn&quot;&gt;---&lt;/span&gt;
+&lt;p&gt;Let’s start by installing an example service that exposes 4 REST functions. This service is based on the
+&lt;a href=&quot;https://github.com/go-swagger/go-swagger/tree/master/examples/2.0/petstore&quot;&gt;go-swagger petstore example&lt;/a&gt;.&lt;/p&gt;
+
+&lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kubectl apply &lt;span class=&quot;nt&quot;&gt;-f&lt;/span&gt; petstore-v1.yaml
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;div class=&quot;github-sample-reference&quot;&gt;
+  &lt;div class=&quot;author-info&quot;&gt;
+    &lt;a href=&quot;https://github.com/scranton/gloo-canary-example/blob/master/petstore-v1.yaml&quot;&gt;This Github Sample&lt;/a&gt; is by &lt;a href=&quot;https://github.com/scranton&quot;&gt;scranton&lt;/a&gt;
+  &lt;/div&gt;
+  &lt;div class=&quot;meta-info&quot;&gt;
+    petstore-v1.yaml &lt;a href=&quot;https://github.com/scranton/gloo-canary-example/blob/master/petstore-v1.yaml&quot;&gt;view&lt;/a&gt; &lt;a href=&quot;https://raw.githubusercontent.com/scranton/gloo-canary-example/master/petstore-v1.yaml&quot;&gt;raw&lt;/a&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-yaml&quot; data-lang=&quot;yaml&quot;&gt;&lt;span class=&quot;nn&quot;&gt;---&lt;/span&gt;
 &lt;span class=&quot;c1&quot;&gt;# petstore-v1&lt;/span&gt;
 &lt;span class=&quot;na&quot;&gt;apiVersion&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;v1&lt;/span&gt;
 &lt;span class=&quot;na&quot;&gt;kind&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;Service&lt;/span&gt;
@@ -807,135 +805,115 @@ the Kubernetes configuration YAML within this post for ease.&lt;/p&gt;
       &lt;span class=&quot;pi&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;na&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;petstore-v1&lt;/span&gt;
         &lt;span class=&quot;na&quot;&gt;image&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;scottcranton/petstore:v1&lt;/span&gt;
         &lt;span class=&quot;na&quot;&gt;ports&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-        &lt;span class=&quot;pi&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;na&quot;&gt;containerPort&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;8080&lt;/span&gt;
-&lt;span class=&quot;s&quot;&gt;EOF&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
+        &lt;span class=&quot;pi&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;na&quot;&gt;containerPort&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;8080&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
 
-    &lt;p&gt;We’ve installing this service into the &lt;code class=&quot;highlighter-rouge&quot;&gt;default&lt;/code&gt; namespace, so we can look there to see if it’s installed correctly.&lt;/p&gt;
+&lt;p&gt;We’ve installing this service into the &lt;code class=&quot;highlighter-rouge&quot;&gt;default&lt;/code&gt; namespace, so we can look there to see if it’s installed correctly.&lt;/p&gt;
 
-    &lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kubectl get all &lt;span class=&quot;nt&quot;&gt;--namespace&lt;/span&gt; default
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
+&lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kubectl get all &lt;span class=&quot;nt&quot;&gt;--namespace&lt;/span&gt; default
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-    &lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;NAME                              READY   STATUS    RESTARTS   AGE
-pod/petstore-v1-986747fc8-mx2nl   1/1     Running   0          10s
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;NAME                              READY   STATUS    RESTARTS   AGE
+pod/petstore-v1-986747fc8-6hn9p   1/1     Running   0          16s
 
-NAME                  TYPE        CLUSTER-IP       EXTERNAL-IP   PORT&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;S&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;    AGE
-service/kubernetes    ClusterIP   10.96.0.1        &amp;lt;none&amp;gt;        443/TCP    11h
-service/petstore-v1   ClusterIP   10.100.222.255   &amp;lt;none&amp;gt;        8080/TCP   10s
+NAME                  TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)    AGE
+service/kubernetes    ClusterIP   10.96.0.1      &amp;lt;none&amp;gt;        443/TCP    22h
+service/petstore-v1   ClusterIP   10.110.99.86   &amp;lt;none&amp;gt;        8080/TCP   17s
 
 NAME                          READY   UP-TO-DATE   AVAILABLE   AGE
-deployment.apps/petstore-v1   1/1     1            1           10s
+deployment.apps/petstore-v1   1/1     1            1           16s
 
 NAME                                    DESIRED   CURRENT   READY   AGE
-replicaset.apps/petstore-v1-986747fc8   1         1         1       10s
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
-  &lt;/li&gt;
-  &lt;li&gt;
-    &lt;p&gt;Let’s test our service to make sure it installed correctly. This service is setup to expose on port &lt;code class=&quot;highlighter-rouge&quot;&gt;8080&lt;/code&gt;, and will
+replicaset.apps/petstore-v1-986747fc8   1         1         1       16s
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Let’s test our service to make sure it installed correctly. This service is setup to expose on port &lt;code class=&quot;highlighter-rouge&quot;&gt;8080&lt;/code&gt;, and will
 return the list of all pets for &lt;code class=&quot;highlighter-rouge&quot;&gt;GET&lt;/code&gt; requests on the query path &lt;code class=&quot;highlighter-rouge&quot;&gt;/api/pets&lt;/code&gt;. The easiest way to test is to
 &lt;code class=&quot;highlighter-rouge&quot;&gt;port-forward&lt;/code&gt; the service so we can access it locally. We’ll need the service name for the port forwarding. Make sure
 the service name matches the ones from your system. This will forward port 8080 from the service running in your Kubernetes
 installation to your local machine, i.e. &lt;code class=&quot;highlighter-rouge&quot;&gt;localhost:8080&lt;/code&gt;.&lt;/p&gt;
 
-    &lt;ul&gt;
-      &lt;li&gt;Get the service names for your installation&lt;/li&gt;
-    &lt;/ul&gt;
+&lt;p&gt;Get the service names for your installation&lt;/p&gt;
 
-    &lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kubectl get service &lt;span class=&quot;nt&quot;&gt;--namespace&lt;/span&gt; default
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
+&lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kubectl get service &lt;span class=&quot;nt&quot;&gt;--namespace&lt;/span&gt; default
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-    &lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;NAME          TYPE        CLUSTER-IP     EXTERNAL-IP   PORT&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;S&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;    AGE
-kubernetes    ClusterIP   10.96.0.1      &amp;lt;none&amp;gt;        443/TCP    16h
-petstore-v1   ClusterIP   10.97.235.37   &amp;lt;none&amp;gt;        8080/TCP   8m3s
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
+&lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;NAME          TYPE        CLUSTER-IP     EXTERNAL-IP   PORT&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;S&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;    AGE
+kubernetes    ClusterIP   10.96.0.1      &amp;lt;none&amp;gt;        443/TCP    22h
+petstore-v1   ClusterIP   10.110.99.86   &amp;lt;none&amp;gt;        8080/TCP   42s
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-    &lt;ul&gt;
-      &lt;li&gt;Setup the port forwarding&lt;/li&gt;
-    &lt;/ul&gt;
+&lt;p&gt;Setup the port forwarding&lt;/p&gt;
 
-    &lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kubectl port-forward service/petstore-v1 8080:8080
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
+&lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kubectl port-forward service/petstore-v1 8080:8080
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-    &lt;ul&gt;
-      &lt;li&gt;In a separate terminal, run the following. The petstore function should return 2 pets: Dog and Cat.&lt;/li&gt;
-    &lt;/ul&gt;
+&lt;p&gt;In a separate terminal, run the following. The petstore function should return 2 pets: Dog and Cat.&lt;/p&gt;
 
-    &lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;curl localhost:8080/api/pets
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
+&lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;curl localhost:8080/api/pets
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-    &lt;div class=&quot;language-json highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;p&quot;&gt;[{&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;id&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;name&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;Dog&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;status&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;available&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;},{&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;id&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;name&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;Cat&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;status&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;pending&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}]&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
-&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
+&lt;div class=&quot;language-json highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;p&quot;&gt;[{&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;id&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;name&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;Dog&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;status&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;available&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;},{&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;id&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;name&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;Cat&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;status&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;pending&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}]&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-    &lt;ul&gt;
-      &lt;li&gt;You can also get the Swagger spec as well.&lt;/li&gt;
-    &lt;/ul&gt;
+&lt;p&gt;You can also get the Swagger spec as well.&lt;/p&gt;
 
-    &lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;curl localhost:8080/swagger.json
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
+&lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;curl localhost:8080/swagger.json
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-    &lt;p&gt;You can kill all the port forwards. Now we’ll setup Gloo…&lt;/p&gt;
-  &lt;/li&gt;
-&lt;/ol&gt;
+&lt;p&gt;You can kill all the port forwards. Now we’ll setup Gloo…&lt;/p&gt;
 
-&lt;h3 id=&quot;setup-gloo&quot;&gt;Setup Gloo&lt;/h3&gt;
+&lt;h2 id=&quot;setup-gloo&quot;&gt;Setup Gloo&lt;/h2&gt;
 
-&lt;ol&gt;
-  &lt;li&gt;
-    &lt;p&gt;Let’s setup the Gloo command line utility. Full instructions are at the &lt;a href=&quot;https://gloo.solo.io/installation/&quot;&gt;Gloo doc site&lt;/a&gt;.
+&lt;p&gt;Let’s setup the Gloo command line utility. Full instructions are at the &lt;a href=&quot;https://gloo.solo.io/installation/&quot;&gt;Gloo doc site&lt;/a&gt;.
 Here are the quick setup instructions.&lt;/p&gt;
 
-    &lt;p&gt;Setup the &lt;code class=&quot;highlighter-rouge&quot;&gt;glooctl&lt;/code&gt; command line tool. This makes installation, upgrade, and operations of Gloo easier. I encourage
-you all to look at the &lt;a href=&quot;https://run.solo.io/gloo/install&quot;&gt;install script&lt;/a&gt; &lt;em&gt;before&lt;/em&gt; running some random shell script
-off the Internet. This sets up &lt;code class=&quot;highlighter-rouge&quot;&gt;glooctl&lt;/code&gt; in your &lt;code class=&quot;highlighter-rouge&quot;&gt;$HOME/.gloo/bin&lt;/code&gt; directory, and the installation will have you add
-that path to your &lt;code class=&quot;highlighter-rouge&quot;&gt;PATH&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Setup the &lt;code class=&quot;highlighter-rouge&quot;&gt;glooctl&lt;/code&gt; command line tool. This makes installation, upgrade, and operations of Gloo easier. Full installation
+instructions are located on the &lt;a href=&quot;https://gloo.solo.io&quot;&gt;https://gloo.solo.io&lt;/a&gt; site.&lt;/p&gt;
 
-    &lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;curl &lt;span class=&quot;nt&quot;&gt;-sL&lt;/span&gt; https://run.solo.io/gloo/install | sh
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
+&lt;p&gt;If you’re a Mac or Linux Homebrew user, I’d recommend installing as follows.&lt;/p&gt;
 
-    &lt;p&gt;If you’re a Mac or Linux Homebrew user, you can also install this way &lt;code class=&quot;highlighter-rouge&quot;&gt;brew install glooctl&lt;/code&gt;.&lt;/p&gt;
-  &lt;/li&gt;
-  &lt;li&gt;
-    &lt;p&gt;Now let’s install Gloo into your Kubernetes installation.&lt;/p&gt;
+&lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;brew &lt;span class=&quot;nb&quot;&gt;install &lt;/span&gt;glooctl
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-    &lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;glooctl &lt;span class=&quot;nb&quot;&gt;install &lt;/span&gt;gateway
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
+&lt;p&gt;Now let’s install Gloo into your Kubernetes installation.&lt;/p&gt;
 
-    &lt;p&gt;Pretty easy, eh? Let’s verify that its installed and running correctly. Gloo by default creates and installs into the
+&lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;glooctl &lt;span class=&quot;nb&quot;&gt;install &lt;/span&gt;gateway
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Pretty easy, eh? Let’s verify that its installed and running correctly. Gloo by default creates and installs into the
 &lt;code class=&quot;highlighter-rouge&quot;&gt;gloo-system&lt;/code&gt; namespace, so let’s look at everything running there.&lt;/p&gt;
 
-    &lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kubectl get all &lt;span class=&quot;nt&quot;&gt;--namespace&lt;/span&gt; gloo-system
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
+&lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kubectl get all &lt;span class=&quot;nt&quot;&gt;--namespace&lt;/span&gt; gloo-system
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-    &lt;p&gt;And the output should look something like the following.&lt;/p&gt;
+&lt;p&gt;And the output should look something like the following.&lt;/p&gt;
 
-    &lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;NAME                                READY   STATUS    RESTARTS   AGE
-pod/discovery-7d87b5c69d-x6798      1/1     Running   0          42s
-pod/gateway-7459bf6bcc-4ttgt        1/1     Running   0          42s
-pod/gateway-proxy-6c97c6c74-kgrgq   1/1     Running   0          42s
-pod/gloo-77f695fbb9-db8wj           1/1     Running   0          42s
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;NAME                                 READY   STATUS    RESTARTS   AGE
+pod/discovery-66c865f9bc-h6v8f       1/1     Running   0          22h
+pod/gateway-777cf4486c-8mzj5         1/1     Running   0          22h
+pod/gateway-proxy-5f58774ccc-rcmdv   1/1     Running   0          22h
+pod/gloo-5c6c4466f-ptc8v             1/1     Running   0          22h
 
-NAME                    TYPE           CLUSTER-IP       EXTERNAL-IP   PORT&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;S&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;                      AGE
-service/gateway-proxy   LoadBalancer   10.108.215.166   &amp;lt;pending&amp;gt;     80:30331/TCP,443:31240/TCP   43s
-service/gloo            ClusterIP      10.96.5.72       &amp;lt;none&amp;gt;        9977/TCP                     43s
+NAME                    TYPE           CLUSTER-IP      EXTERNAL-IP   PORT(S)                      AGE
+service/gateway-proxy   LoadBalancer   10.97.13.246    &amp;lt;pending&amp;gt;     80:31333/TCP,443:32470/TCP   22h
+service/gloo            ClusterIP      10.104.80.219   &amp;lt;none&amp;gt;        9977/TCP                     22h
 
 NAME                            READY   UP-TO-DATE   AVAILABLE   AGE
-deployment.apps/discovery       1/1     1            1           42s
-deployment.apps/gateway         1/1     1            1           42s
-deployment.apps/gateway-proxy   1/1     1            1           42s
-deployment.apps/gloo            1/1     1            1           42s
+deployment.apps/discovery       1/1     1            1           22h
+deployment.apps/gateway         1/1     1            1           22h
+deployment.apps/gateway-proxy   1/1     1            1           22h
+deployment.apps/gloo            1/1     1            1           22h
 
-NAME                                      DESIRED   CURRENT   READY   AGE
-replicaset.apps/discovery-7d87b5c69d      1         1         1       42s
-replicaset.apps/gateway-7459bf6bcc        1         1         1       42s
-replicaset.apps/gateway-proxy-6c97c6c74   1         1         1       42s
-replicaset.apps/gloo-77f695fbb9           1         1         1       42s
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
-  &lt;/li&gt;
-&lt;/ol&gt;
+NAME                                       DESIRED   CURRENT   READY   AGE
+replicaset.apps/discovery-66c865f9bc       1         1         1       22h
+replicaset.apps/gateway-777cf4486c         1         1         1       22h
+replicaset.apps/gateway-proxy-5f58774ccc   1         1         1       22h
+replicaset.apps/gloo-5c6c4466f             1         1         1       22h
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-&lt;h2 id=&quot;routing&quot;&gt;Routing&lt;/h2&gt;
+&lt;h1 id=&quot;routing&quot;&gt;Routing&lt;/h1&gt;
 
-&lt;h3 id=&quot;upstreams&quot;&gt;Upstreams&lt;/h3&gt;
+&lt;h2 id=&quot;upstreams&quot;&gt;Upstreams&lt;/h2&gt;
 
 &lt;p&gt;Before we get into routing, let’s talk a little about the concept of &lt;code class=&quot;highlighter-rouge&quot;&gt;Upstreams&lt;/code&gt;. Upstreams are the services that Gloo
 has discovered automatically. Let’s look at the upstreams that Gloo has discovered in our Kubernetes cluster.&lt;/p&gt;
@@ -945,7 +923,7 @@ has discovered automatically. Let’s look at the upstreams that Gloo has discov
 
 &lt;p&gt;You may see some different entries than what follows. It depends on your Kubernetes cluster, and what is running currently.&lt;/p&gt;
 
-&lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;+-------------------------------+------------+----------+------------------------------+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;+-------------------------------+------------+----------+------------------------------+
 |           UPSTREAM            |    TYPE    |  STATUS  |           DETAILS            |
 +-------------------------------+------------+----------+------------------------------+
 | default-kubernetes-443        | Kubernetes | Accepted | svc name:      kubernetes    |
@@ -989,11 +967,10 @@ Gateways do in only letting you route only to host:port granular services. Let�
 &lt;p&gt;Let’s look a little closer at our petstore upstream. The &lt;code class=&quot;highlighter-rouge&quot;&gt;glooctl&lt;/code&gt; command let’s us output the full details in yaml or
 json.&lt;/p&gt;
 
-&lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;glooctl get upstream default-petstore-v1-8080 &lt;span class=&quot;nt&quot;&gt;-o&lt;/span&gt; yaml
+&lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;glooctl get upstream default-petstore-v1-8080 &lt;span class=&quot;nt&quot;&gt;--output&lt;/span&gt; yaml
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-&lt;div class=&quot;language-yaml highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nn&quot;&gt;---&lt;/span&gt;
-&lt;span class=&quot;na&quot;&gt;discoveryMetadata&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;pi&quot;&gt;{}&lt;/span&gt;
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-yaml&quot; data-lang=&quot;yaml&quot;&gt;&lt;span class=&quot;na&quot;&gt;discoveryMetadata&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;pi&quot;&gt;{}&lt;/span&gt;
 &lt;span class=&quot;na&quot;&gt;metadata&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
   &lt;span class=&quot;na&quot;&gt;annotations&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
     &lt;span class=&quot;s&quot;&gt;kubectl.kubernetes.io/last-applied-configuration&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;pi&quot;&gt;|&lt;/span&gt;
@@ -1003,7 +980,7 @@ json.&lt;/p&gt;
     &lt;span class=&quot;na&quot;&gt;discovered_by&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;kubernetesplugin&lt;/span&gt;
   &lt;span class=&quot;na&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;default-petstore-v1-8080&lt;/span&gt;
   &lt;span class=&quot;na&quot;&gt;namespace&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;gloo-system&lt;/span&gt;
-  &lt;span class=&quot;na&quot;&gt;resourceVersion&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;15160&quot;&lt;/span&gt;
+  &lt;span class=&quot;na&quot;&gt;resourceVersion&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;20387&quot;&lt;/span&gt;
 &lt;span class=&quot;na&quot;&gt;status&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
   &lt;span class=&quot;na&quot;&gt;reportedBy&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;gloo&lt;/span&gt;
   &lt;span class=&quot;na&quot;&gt;state&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;Accepted&lt;/span&gt;
@@ -1060,35 +1037,31 @@ json.&lt;/p&gt;
               &lt;span class=&quot;na&quot;&gt;content-length&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
                 &lt;span class=&quot;na&quot;&gt;text&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;0&quot;&lt;/span&gt;
               &lt;span class=&quot;na&quot;&gt;content-type&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;pi&quot;&gt;{}&lt;/span&gt;
-              &lt;span class=&quot;na&quot;&gt;transfer-encoding&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;pi&quot;&gt;{}&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+              &lt;span class=&quot;na&quot;&gt;transfer-encoding&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;pi&quot;&gt;{}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
 
 &lt;p&gt;Here we see that the &lt;code class=&quot;highlighter-rouge&quot;&gt;findPets&lt;/code&gt; REST function is looking for requests on &lt;code class=&quot;highlighter-rouge&quot;&gt;/api/pets&lt;/code&gt;, and &lt;code class=&quot;highlighter-rouge&quot;&gt;findPetsById&lt;/code&gt; is
 looking for requests on &lt;code class=&quot;highlighter-rouge&quot;&gt;/api/pets/{id}&lt;/code&gt; where &lt;code class=&quot;highlighter-rouge&quot;&gt;{id}&lt;/code&gt; is the id number of the single pet who’s details are to be returned.&lt;/p&gt;
 
 &lt;h3 id=&quot;basic-routing&quot;&gt;Basic Routing&lt;/h3&gt;
 
-&lt;p&gt;Gloo acts like an &lt;a href=&quot;https://kubernetes.io/docs/concepts/services-networking/ingress/&quot;&gt;Kubernetes Ingress&lt;/a&gt;, which means it
-can allow requests from external to the Kubernetes cluster to access services running inside the cluster. Gloo uses a
-concept called &lt;code class=&quot;highlighter-rouge&quot;&gt;VirtualService&lt;/code&gt; to setup routes to Kubernetes hosted services.&lt;/p&gt;
+&lt;p&gt;Gloo acts like an (better) &lt;a href=&quot;https://kubernetes.io/docs/concepts/services-networking/ingress/&quot;&gt;Kubernetes Ingress&lt;/a&gt;, which
+means it can allow requests from external to the Kubernetes cluster to access services running inside the cluster. Gloo
+uses a concept called &lt;code class=&quot;highlighter-rouge&quot;&gt;VirtualService&lt;/code&gt; to setup routes to Kubernetes hosted services.&lt;/p&gt;
 
 &lt;p&gt;This post will show you how to configure Gloo using the command line tools, and I’ll explain a little of what’s happening
 with each command. I’ll also include the YAML at the end of each step if you’d prefer to work in a purely declarative
 fashion (versus imperative commands).&lt;/p&gt;
 
-&lt;ol&gt;
-  &lt;li&gt;
-    &lt;p&gt;Setup &lt;code class=&quot;highlighter-rouge&quot;&gt;VirtualService&lt;/code&gt;. This gives us a place to define a set of related routes. This won’t do much till we create
+&lt;p&gt;Setup &lt;code class=&quot;highlighter-rouge&quot;&gt;VirtualService&lt;/code&gt;. This gives us a place to define a set of related routes. This won’t do much till we create
 some routes in the next steps.&lt;/p&gt;
 
-    &lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;glooctl create virtualservice &lt;span class=&quot;nt&quot;&gt;--name&lt;/span&gt; coalmine
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
+&lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;glooctl create virtualservice &lt;span class=&quot;nt&quot;&gt;--name&lt;/span&gt; coalmine
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-    &lt;p&gt;Here’s the YAML that will create the same resource. Note that by default the &lt;code class=&quot;highlighter-rouge&quot;&gt;glooctl&lt;/code&gt; command creates resources in
-the &lt;code class=&quot;highlighter-rouge&quot;&gt;gloo-system&lt;/code&gt; namespace.&lt;/p&gt;
+&lt;p&gt;Here’s the YAML that will create the same resource as the &lt;code class=&quot;highlighter-rouge&quot;&gt;glooctl&lt;/code&gt; command we just ran. Note that by default the
+&lt;code class=&quot;highlighter-rouge&quot;&gt;glooctl&lt;/code&gt; command creates resources in the &lt;code class=&quot;highlighter-rouge&quot;&gt;gloo-system&lt;/code&gt; namespace.&lt;/p&gt;
 
-    &lt;div class=&quot;language-yaml highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nn&quot;&gt;---&lt;/span&gt;
-&lt;span class=&quot;na&quot;&gt;apiVersion&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;gateway.solo.io/v1&lt;/span&gt;
+&lt;div class=&quot;language-yaml highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;na&quot;&gt;apiVersion&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;gateway.solo.io/v1&lt;/span&gt;
 &lt;span class=&quot;na&quot;&gt;kind&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;VirtualService&lt;/span&gt;
 &lt;span class=&quot;na&quot;&gt;metadata&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
   &lt;span class=&quot;na&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;coalmine&lt;/span&gt;
@@ -1099,32 +1072,29 @@ the &lt;code class=&quot;highlighter-rouge&quot;&gt;gloo-system&lt;/code&gt; nam
     &lt;span class=&quot;na&quot;&gt;domains&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
     &lt;span class=&quot;pi&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;'&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;*'&lt;/span&gt;
     &lt;span class=&quot;na&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;gloo-system.coalmine&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
-  &lt;/li&gt;
-  &lt;li&gt;
-    &lt;p&gt;Create a route for all traffic to go to our service.&lt;/p&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-    &lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;glooctl add route &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
-   &lt;span class=&quot;nt&quot;&gt;--name&lt;/span&gt; coalmine &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
-   &lt;span class=&quot;nt&quot;&gt;--path-prefix&lt;/span&gt; /petstore &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
-   &lt;span class=&quot;nt&quot;&gt;--dest-name&lt;/span&gt; default-petstore-v1-8080 &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
-   &lt;span class=&quot;nt&quot;&gt;--prefix-rewrite&lt;/span&gt; /api/pets/
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
+&lt;p&gt;Create a route for all traffic to go to our service.&lt;/p&gt;
 
-    &lt;p&gt;This sets up a simple ingress route so that all requests going to the Gloo Proxy &lt;code class=&quot;highlighter-rouge&quot;&gt;/&lt;/code&gt; URL are redirected to the
+&lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;glooctl add route &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+  &lt;span class=&quot;nt&quot;&gt;--name&lt;/span&gt; coalmine &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+  &lt;span class=&quot;nt&quot;&gt;--path-prefix&lt;/span&gt; /petstore &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+  &lt;span class=&quot;nt&quot;&gt;--dest-name&lt;/span&gt; default-petstore-v1-8080 &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+  &lt;span class=&quot;nt&quot;&gt;--prefix-rewrite&lt;/span&gt; /api/pets
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;This sets up a simple ingress route so that all requests going to the Gloo Proxy &lt;code class=&quot;highlighter-rouge&quot;&gt;/&lt;/code&gt; URL are redirected to the
 &lt;code class=&quot;highlighter-rouge&quot;&gt;default-petstore-v1-8080&lt;/code&gt; service &lt;code class=&quot;highlighter-rouge&quot;&gt;/api/pets&lt;/code&gt;. Let’s test it. To get the Gloo proxy host and port number (remember
 that Gloo is acting like a Kubernetes Ingress), we need to call &lt;code class=&quot;highlighter-rouge&quot;&gt;glooctl proxy url&lt;/code&gt;. Then let’s call the route path.&lt;/p&gt;
 
-    &lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nb&quot;&gt;export &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;PROXY_URL&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;$(&lt;/span&gt;glooctl proxy url&lt;span class=&quot;k&quot;&gt;)&lt;/span&gt;
+&lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nb&quot;&gt;export &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;PROXY_URL&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;$(&lt;/span&gt;glooctl proxy url&lt;span class=&quot;k&quot;&gt;)&lt;/span&gt;
 curl &lt;span class=&quot;k&quot;&gt;${&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;PROXY_URL&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;}&lt;/span&gt;/petstore
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-    &lt;p&gt;And we should see the same results as when we called the port forwarded service.&lt;/p&gt;
+&lt;p&gt;And we should see the same results as when we called the port forwarded service.&lt;/p&gt;
 
-    &lt;div class=&quot;language-json highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;p&quot;&gt;[{&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;id&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;name&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;Dog&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;status&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;available&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;},{&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;id&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;name&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;Cat&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;status&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;pending&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}]&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
-&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;    &lt;/div&gt;
-  &lt;/li&gt;
-&lt;/ol&gt;
+&lt;div class=&quot;language-json highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;p&quot;&gt;[{&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;id&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;name&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;Dog&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;status&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;available&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;},{&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;id&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;name&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;Cat&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;status&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;pending&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}]&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
 &lt;p&gt;Here’s the full YAML for the coal virtual service created so far.&lt;/p&gt;
 
@@ -1149,12 +1119,12 @@ curl &lt;span class=&quot;k&quot;&gt;${&lt;/span&gt;&lt;span class=&quot;nv&quot
             &lt;span class=&quot;na&quot;&gt;namespace&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;gloo-system&lt;/span&gt;
       &lt;span class=&quot;na&quot;&gt;routePlugins&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
         &lt;span class=&quot;na&quot;&gt;prefixRewrite&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-          &lt;span class=&quot;na&quot;&gt;prefixRewrite&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;/api/pets/&lt;/span&gt;
+          &lt;span class=&quot;na&quot;&gt;prefixRewrite&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;/api/pets&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-&lt;h3 id=&quot;function-routing&quot;&gt;Function Routing&lt;/h3&gt;
+&lt;h2 id=&quot;function-routing&quot;&gt;Function Routing&lt;/h2&gt;
 
-&lt;p&gt;Wouldn’t it be better if we could just route to the named REST function versus having to know the specifics of the query
+&lt;p&gt;Would it be better if we could just route to the named REST function versus having to know the specifics of the query
 path (i.e. &lt;code class=&quot;highlighter-rouge&quot;&gt;/api/pets&lt;/code&gt;) the service is expecting? Gloo can help us with that. Let’s setup a route to &lt;code class=&quot;highlighter-rouge&quot;&gt;findPets&lt;/code&gt; REST
 function.&lt;/p&gt;
 
@@ -1173,7 +1143,10 @@ for the same REST functions, if you want.&lt;/p&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
 &lt;p&gt;If we want to route to a function with parameters, we can do that too by telling Gloo how to find the &lt;code class=&quot;highlighter-rouge&quot;&gt;id&lt;/code&gt; parameter.
-In this case, it happens to be a path parameter, but it could come from other parts of the request:&lt;/p&gt;
+In this case, it happens to be a path parameter, but it could come from other parts of the request.&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;Note&lt;/strong&gt;: We’re about to create a route with a &lt;strong&gt;different&lt;/strong&gt; name &lt;code class=&quot;highlighter-rouge&quot;&gt;findPetWithId&lt;/code&gt; than the function name &lt;code class=&quot;highlighter-rouge&quot;&gt;findPetById&lt;/code&gt;
+it is routing to. Gloo allows you to setup routing rules for any prefix path to any function name.&lt;/p&gt;
 
 &lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;glooctl add route &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
    &lt;span class=&quot;nt&quot;&gt;--name&lt;/span&gt; coalmine &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
@@ -1202,7 +1175,16 @@ In this case, it happens to be a path parameter, but it could come from other pa
 &lt;p&gt;Here’s the complete YAML you could apply to get the same virtual service setup that we just did. To recreate this
 virtual service you could just &lt;code class=&quot;highlighter-rouge&quot;&gt;kubectl apply&lt;/code&gt; the following YAML.&lt;/p&gt;
 
-&lt;div class=&quot;language-yaml highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;na&quot;&gt;apiVersion&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;gateway.solo.io/v1&lt;/span&gt;
+&lt;div class=&quot;github-sample-reference&quot;&gt;
+  &lt;div class=&quot;author-info&quot;&gt;
+    &lt;a href=&quot;https://github.com/scranton/gloo-canary-example/blob/master/coalmine-virtual-service-part-1.yaml&quot;&gt;This Github Sample&lt;/a&gt; is by &lt;a href=&quot;https://github.com/scranton&quot;&gt;scranton&lt;/a&gt;
+  &lt;/div&gt;
+  &lt;div class=&quot;meta-info&quot;&gt;
+    coalmine-virtual-service-part-1.yaml &lt;a href=&quot;https://github.com/scranton/gloo-canary-example/blob/master/coalmine-virtual-service-part-1.yaml&quot;&gt;view&lt;/a&gt; &lt;a href=&quot;https://raw.githubusercontent.com/scranton/gloo-canary-example/master/coalmine-virtual-service-part-1.yaml&quot;&gt;raw&lt;/a&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-yaml&quot; data-lang=&quot;yaml&quot;&gt;&lt;span class=&quot;na&quot;&gt;apiVersion&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;gateway.solo.io/v1&lt;/span&gt;
 &lt;span class=&quot;na&quot;&gt;kind&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;VirtualService&lt;/span&gt;
 &lt;span class=&quot;na&quot;&gt;metadata&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
   &lt;span class=&quot;na&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;coalmine&lt;/span&gt;
@@ -1247,10 +1229,9 @@ virtual service you could just &lt;code class=&quot;highlighter-rouge&quot;&gt;k
             &lt;span class=&quot;na&quot;&gt;namespace&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;gloo-system&lt;/span&gt;
       &lt;span class=&quot;na&quot;&gt;routePlugins&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
         &lt;span class=&quot;na&quot;&gt;prefixRewrite&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
-          &lt;span class=&quot;na&quot;&gt;prefixRewrite&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;/api/pets/&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+          &lt;span class=&quot;na&quot;&gt;prefixRewrite&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;/api/pets&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
 
-&lt;h2 id=&quot;summary&quot;&gt;Summary&lt;/h2&gt;
+&lt;h1 id=&quot;summary&quot;&gt;Summary&lt;/h1&gt;
 
 &lt;p&gt;This post is just the beginning of our function gateway journey with Gloo. Hopefully its given you a taste of some
 more sophisticated function level routing options that are available to you. I’ll try to follow up with more posts on
