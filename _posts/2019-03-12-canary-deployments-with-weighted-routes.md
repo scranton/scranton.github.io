@@ -29,6 +29,10 @@ version to validate that its working correctly in production without risking too
 gain confidence in your new version, you can route more and more traffic to it until you cut over completely, i.e. 100%
 to new version, and decommission the old version.
 
+All of the Kubernetes manifests are located at <https://github.com/scranton/gloo-canary-example>. I'd suggest you clone
+that repo locally to make it easier to try these example yourself. All command examples assume your in the top level
+director of that repo.
+
 ## Review
 
 Quickly reviewing the previous 2 posts, we learned that Gloo can help with function level routing, and that routing can
@@ -160,71 +164,16 @@ To create a weighted destination, we need to change the `routeAction` from `sing
 and provide 2+ `destination`, which are `destinationSpec` with `weight`. For example, to route
 10% of request traffic to `findPetWithId` to `petstore-v2` and the remaining 90% to `petstore-v1`.
 
-```yaml
-cat <<EOF | kubectl apply -f -
----
-apiVersion: gateway.solo.io/v1
-kind: VirtualService
-metadata:
-  name: coalmine
-  namespace: gloo-system
-spec:
-  displayName: coalmine
-  virtualHost:
-    domains:
-    - '*'
-    name: gloo-system.coalmine
-    routes:
-    - matcher:
-        prefix: /findPets
-      routeAction:
-        single:
-          destinationSpec:
-            rest:
-              functionName: findPets
-              parameters: {}
-          upstream:
-            name: default-petstore-v2-8080
-            namespace: gloo-system
-    - matcher:
-        prefix: /findPetWithId
-      routeAction:
-        multi:
-          destinations:
-          - destination:
-              destinationSpec:
-                rest:
-                  functionName: findPetById
-                  parameters:
-                    headers:
-                      :path: /findPetWithId/{id}
-              upstream:
-                name: default-petstore-v2-8080
-                namespace: gloo-system
-            weight: 10
-          - destination:
-              destinationSpec:
-                rest:
-                  functionName: findPetById
-                  parameters:
-                    headers:
-                      :path: /findPetWithId/{id}
-              upstream:
-                name: default-petstore-v1-8080
-                namespace: gloo-system
-            weight: 90
-    - matcher:
-        prefix: /petstore
-      routeAction:
-        single:
-          upstream:
-            name: default-petstore-v1-8080
-            namespace: gloo-system
-      routePlugins:
-        prefixRewrite:
-          prefixRewrite: /api/pets/
-EOF
+```shell
+kubectl apply -f coalmine-virtual-service-part-3-weighted.yaml
 ```
+
+Here's the relevant part of the virtual service manifest showing the weighted destination spec.
+
+{% github_sample_ref /scranton/gloo-canary-example/master/coalmine-virtual-service-part-3-weighted.yaml %}
+{% highlight yaml %}
+{% github_sample /scranton/gloo-canary-example/master/coalmine-virtual-service-part-3-weighted.yaml 25 50 %}
+{% endhighlight %}
 
 Let's run a shell loop to test, remember that `petstore-v2` responses have a `status` field of `v2`. The following
 command will call our function 20 times, and we should see ~2 responses (~10%) return with `"status":"v2"`.
@@ -266,71 +215,14 @@ respective percentage to each destination. So if we set both route weights to `1
 of the request traffic. I'd recommend setting the values with a sum of 100 so they look like percentages for greater
 readability. The following example will update our routes to do 50/50 traffic split.
 
-```yaml
-cat <<EOF | kubectl apply -f -
----
-apiVersion: gateway.solo.io/v1
-kind: VirtualService
-metadata:
-  name: coalmine
-  namespace: gloo-system
-spec:
-  displayName: coalmine
-  virtualHost:
-    domains:
-    - '*'
-    name: gloo-system.coalmine
-    routes:
-    - matcher:
-        prefix: /findPets
-      routeAction:
-        single:
-          destinationSpec:
-            rest:
-              functionName: findPets
-              parameters: {}
-          upstream:
-            name: default-petstore-v2-8080
-            namespace: gloo-system
-    - matcher:
-        prefix: /findPetWithId
-      routeAction:
-        multi:
-          destinations:
-          - destination:
-              destinationSpec:
-                rest:
-                  functionName: findPetById
-                  parameters:
-                    headers:
-                      :path: /findPetWithId/{id}
-              upstream:
-                name: default-petstore-v2-8080
-                namespace: gloo-system
-            weight: 50
-          - destination:
-              destinationSpec:
-                rest:
-                  functionName: findPetById
-                  parameters:
-                    headers:
-                      :path: /findPetWithId/{id}
-              upstream:
-                name: default-petstore-v1-8080
-                namespace: gloo-system
-            weight: 50
-    - matcher:
-        prefix: /petstore
-      routeAction:
-        single:
-          upstream:
-            name: default-petstore-v1-8080
-            namespace: gloo-system
-      routePlugins:
-        prefixRewrite:
-          prefixRewrite: /api/pets/
-EOF
+```shell
+kubectl apply -f coalmine-virtual-service-part-3-weighted-50-50.yaml
 ```
+
+{% github_sample_ref /scranton/gloo-canary-example/master/coalmine-virtual-service-part-3-weighted-50-50.yaml %}
+{% highlight yaml %}
+{% github_sample /scranton/gloo-canary-example/master/coalmine-virtual-service-part-3-weighted-50-50.yaml 25 50 %}
+{% endhighlight %}
 
 And if we run our test loop again, we should see about 10 of the 20 requests returning `"status":"v2`.
 

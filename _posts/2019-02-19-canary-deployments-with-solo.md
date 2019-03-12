@@ -32,7 +32,7 @@ presence of a request header `x-canary:true` to influence runtime routing to eit
 Then once we're happy with our new version, we will update the route so all requests now go to version 2 of our
 service. All without changing or even redeploying our 2 services. But first, let's set some context...
 
-## Background
+# Background
 
 <figure class='quote'>
   <blockquote>
@@ -69,7 +69,11 @@ This post assumes you've already run thru the [Function Routing with Gloo]({{ si
 post, and that you've already got a Kubernetes environment setup with Gloo. If not, please refer back to that post for
 setup instructions and the basics of `VirtualServices` and `Routes` with Gloo.
 
-## Review
+All of the Kubernetes manifests are located at <https://github.com/scranton/gloo-canary-example>. I'd suggest you clone
+that repo locally to make it easier to try these example yourself. All command examples assume your in the top level
+director of that repo.
+
+# Review
 
 In the previous post, we had a single service `petstore-v1`, and we setup Gloo to route requests to its `findPets`
 REST function. Let's test that its still working as expected. Remember we need to get Gloo's proxy url by calling the
@@ -85,94 +89,57 @@ curl ${PROXY_URL}/findPets
 [{"id":1,"name":"Dog","status":"available"},{"id":2,"name":"Cat","status":"pending"}]
 ```
 
-## Canary Routing
+# Canary Routing
 
 Now let's deploy a version 2 of our service, and let's setup a canary route for the `findPets` function. That is, by
 default we'll route to version 1 of the function, and if there is a request header `x-canary:true` set, we'll route that
 request to version 2 of our function.
 
-### Install and verify petstore version 2
+## Install and verify petstore version 2 example service
 
-1. Let's first deploy version 2 of our petstore service. This version has been modified to return 3 pets.
+Let's first deploy version 2 of our petstore service. This version has been modified to return 3 pets.
 
-   ```yaml
-   cat <<EOF | kubectl apply -f -
-   ---
-   # petstore-v2
-   apiVersion: v1
-   kind: Service
-   metadata:
-     name: petstore-v2
-     namespace: default
-     labels:
-       app: petstore-v2
-   spec:
-     type: ClusterIP
-     ports:
-     - name: http
-       port: 8080
-       targetPort: 8080
-       protocol: TCP
-     selector:
-       app: petstore-v2
-   ---
-   apiVersion: apps/v1
-   kind: Deployment
-   metadata:
-     name: petstore-v2
-     namespace: default
-     labels:
-       app: petstore-v2
-   spec:
-     replicas: 1
-     selector:
-       matchLabels:
-         app: petstore-v2
-     template:
-       metadata:
-         labels:
-           app: petstore-v2
-       spec:
-         containers:
-         - name: petstore-v2
-           image: scottcranton/petstore:v2
-           ports:
-           - containerPort: 8080
-   EOF
-   ```
+```shell
+kubectl apply -f petstore-v2.yaml
+```
 
-1. Verify its setup right
+{% github_sample_ref /scranton/gloo-canary-example/master/petstore-v2.yaml %}
+{% highlight yaml %}
+{% github_sample /scranton/gloo-canary-example/master/petstore-v2.yaml %}
+{% endhighlight %}
 
-   ```shell
-   kubectl get services --namespace default
-   ```
+Verify its setup right
 
-   ```shell
-   NAME          TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
-   kubernetes    ClusterIP   10.96.0.1       <none>        443/TCP    16h
-   petstore-v1   ClusterIP   10.97.235.37    <none>        8080/TCP   15m
-   petstore-v2   ClusterIP   10.105.156.10   <none>        8080/TCP   37s
-   ```
+```shell
+kubectl get services --namespace default
+```
 
-   Now let's setup a port forward to see if it works. When we do a `GET` against `/api/pets` we should get back 3 pets.
+```shell
+NAME          TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
+kubernetes    ClusterIP   10.96.0.1       <none>        443/TCP    22h
+petstore-v1   ClusterIP   10.110.99.86    <none>        8080/TCP   33m
+petstore-v2   ClusterIP   10.109.91.120   <none>        8080/TCP   6s
+```
 
-   ```shell
-   kubectl port-forward services/petstore-v2 8080:8080
-   ```
+Now let's setup a port forward to see if it works. When we do a `GET` against `/api/pets` we should get back 3 pets.
 
-   And in a different terminal, run the following to see if we get back 3 pets for version 2 of our service.
+```shell
+kubectl port-forward services/petstore-v2 8080:8080
+```
 
-   ```shell
-   curl localhost:8080/api/pets
-   ```
+And in a different terminal, run the following to see if we get back 3 pets for version 2 of our service.
 
-   ```json
-   [{"id":1,"name":"Dog","status":"v2"},{"id":2,"name":"Cat","status":"v2"},{"id":3,"name":"Parrot","status":"v2"}]
-   ```
+```shell
+curl localhost:8080/api/pets
+```
+
+```json
+[{"id":1,"name":"Dog","status":"v2"},{"id":2,"name":"Cat","status":"v2"},{"id":3,"name":"Parrot","status":"v2"}]
+```
 
 You should kill all port forwarding as we'll use Gloo to proxy future tests.
 
-### Setup Canary Route
+## Setup Canary Route
 
 Let's setup a new function route rule for petstore version 2 `findPets` function that depends on the presence of the
 `x-canary:true` request header.
@@ -218,69 +185,16 @@ curl -H "x-canary:false" ${PROXY_URL}/findPets
 
 Here's the complete YAML for our `coalmine` virtual service that you could `kubectl apply` if you wanted to recreate
 
-```yaml
-apiVersion: gateway.solo.io/v1
-kind: VirtualService
-metadata:
-  name: coalmine
-  namespace: gloo-system
-spec:
-  displayName: coalmine
-  virtualHost:
-    domains:
-    - '*'
-    name: gloo-system.coalmine
-    routes:
-    - matcher:
-        headers:
-        - name: x-canary
-          regex: true
-          value: "true"
-        prefix: /findPets
-      routeAction:
-        single:
-          destinationSpec:
-            rest:
-              functionName: findPets
-              parameters: {}
-          upstream:
-            name: default-petstore-v2-8080
-            namespace: gloo-system
-    - matcher:
-        prefix: /findPetWithId
-      routeAction:
-        single:
-          destinationSpec:
-            rest:
-              functionName: findPetById
-              parameters:
-                headers:
-                  :path: /findPetWithId/{id}
-          upstream:
-            name: default-petstore-v1-8080
-            namespace: gloo-system
-    - matcher:
-        prefix: /findPets
-      routeAction:
-        single:
-          destinationSpec:
-            rest:
-              functionName: findPets
-              parameters: {}
-          upstream:
-            name: default-petstore-v1-8080
-            namespace: gloo-system
-    - matcher:
-        prefix: /petstore
-      routeAction:
-        single:
-          upstream:
-            name: default-petstore-v1-8080
-            namespace: gloo-system
-      routePlugins:
-        prefixRewrite:
-          prefixRewrite: /api/pets/
-```
+{% github_sample_ref /scranton/gloo-canary-example/master/coalmine-virtual-service-part-2-header.yaml %}
+{% highlight yaml %}
+{% github_sample /scranton/gloo-canary-example/master/coalmine-virtual-service-part-2-header.yaml %}
+{% endhighlight %}
+
+The part of the virtual service manifest that is specifying the header based routing is highlighted as follows.
+
+{% highlight yaml %}
+{% github_sample /scranton/gloo-canary-example/master/coalmine-virtual-service-part-2-header.yaml 12 18 %}
+{% endhighlight %}
 
 ### Make version 2 the default for all requests
 
@@ -295,58 +209,12 @@ a new service version.
 The easiest way to make change the routing rules to route all requests to version 2 `findPets` is by applying a YAML
 file. You can use the `glooctl` command line tool to add and remove routes, but it takes several calls.
 
-```yaml
-cat <<EOF | kubectl apply -f -
-apiVersion: gateway.solo.io/v1
-kind: VirtualService
-metadata:
-  name: coalmine
-  namespace: gloo-system
-spec:
-  displayName: coalmine
-  virtualHost:
-    domains:
-    - '*'
-    name: gloo-system.coalmine
-    routes:
-    - matcher:
-        prefix: /findPets
-      routeAction:
-        single:
-          destinationSpec:
-            rest:
-              functionName: findPets
-              parameters: {}
-          upstream:
-            name: default-petstore-v2-8080
-            namespace: gloo-system
-    - matcher:
-        prefix: /findPetWithId
-      routeAction:
-        single:
-          destinationSpec:
-            rest:
-              functionName: findPetById
-              parameters:
-                headers:
-                  :path: /findPetWithId/{id}
-          upstream:
-            name: default-petstore-v1-8080
-            namespace: gloo-system
-    - matcher:
-        prefix: /petstore
-      routeAction:
-        single:
-          upstream:
-            name: default-petstore-v1-8080
-            namespace: gloo-system
-      routePlugins:
-        prefixRewrite:
-          prefixRewrite: /api/pets/
-EOF
-```
+{% github_sample_ref /scranton/gloo-canary-example/master/coalmine-virtual-service-part-2-v2.yaml %}
+{% highlight yaml %}
+{% github_sample /scranton/gloo-canary-example/master/coalmine-virtual-service-part-2-v2.yaml %}
+{% endhighlight %}
 
-## Summary
+# Summary
 
 This post has shown you have to leverage the Gloo function gateway to do a Canary Release of a new version of a function,
 and allow you to do very granular function level routing to validate your new function is working correctly. Then it showed
