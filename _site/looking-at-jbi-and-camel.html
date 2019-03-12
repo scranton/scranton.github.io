@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html>
+    <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>Looking at JBI and Camel | Scott Cranton &mdash; Solo.io Customer Success </title>
+    <meta property="og:title" content="Looking at JBI and Camel | Scott Cranton &mdash; Solo.io Customer Success " />
+    <meta name="twitter:title" content="Looking at JBI and Camel | Scott Cranton &mdash; Solo.io Customer Success " />
+
+    <meta name="description" content="I lead Customer Success at Solo.io. I enjoy hacking tech, and writing about it.">
+    <meta name="description" property="og:description" content="I lead Customer Success at Solo.io. I enjoy hacking tech, and writing about it." />
+    <meta name="twitter:description" content="I lead Customer Success at Solo.io. I enjoy hacking tech, and writing about it." />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    
+    <meta name="twitter:site" content="@scottcranton" />
+    
+    <meta property="og:url" content="https://scott.cranton.com/looking-at-jbi-and-camel.html" />
+
+    <meta property="og:image" content="" />
+    <meta name="twitter:image" content="" />
+
+    <meta name="author" content="Scott Cranton" />
+
+    <meta name="copyright" content="Copyright by Scott Cranton. All Rights Reserved." />
+
+    <style>
+        @font-face {
+            font-family: 'Roboto';
+            font-style: normal;
+            font-weight: 300;
+            src: local('Roboto Light'), local('Roboto-Light'), url(https://fonts.gstatic.com/s/roboto/v15/Hgo13k-tfSpn0qi1SFdUfVtXRa8TVwTICgirnJhmVJw.woff2) format('woff2');
+            unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2212, U+2215, U+E0FF, U+EFFD, U+F000;
+        }
+
+        @font-face {
+            font-family: 'Roboto';
+            font-style: normal;
+            font-weight: 400;
+            src: local('Roboto'), local('Roboto-Regular'), url(https://fonts.gstatic.com/s/roboto/v15/CWB0XYA8bzo0kSThX0UTuA.woff2) format('woff2');
+            unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2212, U+2215, U+E0FF, U+EFFD, U+F000;
+        }
+
+        @font-face {
+            font-family: 'Roboto';
+            font-style: normal;
+            font-weight: 700;
+            src: local('Roboto Bold'), local('Roboto-Bold'), url(https://fonts.gstatic.com/s/roboto/v15/d-6IYplOFocCacKzxwXSOFtXRa8TVwTICgirnJhmVJw.woff2) format('woff2');
+            unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2212, U+2215, U+E0FF, U+EFFD, U+F000;
+        }
+
+        @font-face {
+            font-family: 'Roboto';
+            font-style: normal;
+            font-weight: 900;
+            src: local('Roboto Black'), local('Roboto-Black'), url(https://fonts.gstatic.com/s/roboto/v15/mnpfi9pxYH-Go5UiibESIltXRa8TVwTICgirnJhmVJw.woff2) format('woff2');
+            unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2212, U+2215, U+E0FF, U+EFFD, U+F000;
+        }
+
+        @font-face {
+            font-family: 'Roboto';
+            font-style: italic;
+            font-weight: 300;
+            src: local('Roboto Light Italic'), local('Roboto-LightItalic'), url(https://fonts.gstatic.com/s/roboto/v15/7m8l7TlFO-S3VkhHuR0at44P5ICox8Kq3LLUNMylGO4.woff2) format('woff2');
+            unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2212, U+2215, U+E0FF, U+EFFD, U+F000;
+        }
+
+        @font-face {
+            font-family: 'Roboto';
+            font-style: italic;
+            font-weight: 400;
+            src: local('Roboto Italic'), local('Roboto-Italic'), url(https://fonts.gstatic.com/s/roboto/v15/vPcynSL0qHq_6dX7lKVByfesZW2xOQ-xsNqO47m55DA.woff2) format('woff2');
+            unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2212, U+2215, U+E0FF, U+EFFD, U+F000;
+        }
+
+        @font-face {
+            font-family: 'Roboto';
+            font-style: italic;
+            font-weight: 700;
+            src: local('Roboto Bold Italic'), local('Roboto-BoldItalic'), url(https://fonts.gstatic.com/s/roboto/v15/t6Nd4cfPRhZP44Q5QAjcC44P5ICox8Kq3LLUNMylGO4.woff2) format('woff2');
+            unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2212, U+2215, U+E0FF, U+EFFD, U+F000;
+        }
+
+        @font-face {
+            font-family: 'Roboto';
+            font-style: italic;
+            font-weight: 900;
+            src: local('Roboto Black Italic'), local('Roboto-BlackItalic'), url(https://fonts.gstatic.com/s/roboto/v15/bmC0pGMXrhphrZJmniIZpY4P5ICox8Kq3LLUNMylGO4.woff2) format('woff2');
+            unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2212, U+2215, U+E0FF, U+EFFD, U+F000;
+        }
+    </style>
+    
+    <link href="/favicon.ico" rel="shortcut icon" type="image/x-icon" />
+    
+    <link rel="stylesheet" href="https://scott.cranton.com/assets/css/main.css">
+
+    <link rel="canonical" href="https://scott.cranton.com/looking-at-jbi-and-camel.html">
+
+    <link rel="alternate" type="application/rss+xml" title="Scott Cranton" href="https://scott.cranton.com/feed.xml">
+</head>
+
+    <body>
+        <div class="wrapper">
+            <aside class="user-profile fixed" role="complementary">
+    <div class="burger">
+        <input class="trigger hidden" id="toggleBurger" type="checkbox" />
+        <label for="toggleBurger">
+            <span>Navigation</span>
+        </label>
+    </div>
+
+    <div class="compact-header">
+        <a class="avatar" href="https://scott.cranton.com"><img alt="Avatar" src="/scottcranton.png" /></a>
+        <div class="my-info">
+            <strong class="my-name">Scott Cranton</strong>
+            <span class="my-job-title">Solo.io Customer Success</span>
+        </div>
+    </div>
+
+    
+        
+        <div class="mainmenu">
+            <a href="https://scott.cranton.com" >Home</a>
+            
+                
+            
+                
+            
+                
+            
+                
+                    <a href="https://scott.cranton.com/archive/" >Archive</a>
+                
+            
+                
+                    <a href="https://scott.cranton.com/publications/" >Publications</a>
+                
+            
+                
+            
+                
+            
+                
+            
+                
+            
+                
+            
+                
+            
+                
+            
+                
+            
+                
+            
+                
+            
+                
+            
+                
+            
+        </div>
+        
+    
+
+    <p class="about-me">I lead Customer Success at Solo.io. I enjoy hacking tech, and writing about it.</p>
+
+    <ul class="socials">
+        <li><a href="http://twitter.com/scottcranton"><svg title="twitter" width="16" height="16" ><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://scott.cranton.com/assets/svg/social-icons.svg#twitter-icon"></use></svg></a></li><li><a href="https://www.linkedin.com/in/scottcranton/"><svg title="linkedin" width="16" height="16" ><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://scott.cranton.com/assets/svg/social-icons.svg#linkedin-icon"></use></svg></a></li><li><a href="https://github.com/scranton"><svg title="github" width="16" height="16" ><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://scott.cranton.com/assets/svg/social-icons.svg#github-icon"></use></svg></a></li>
+
+        
+
+        
+         <li><a href="https://scott.cranton.com/feed.xml"><svg title="" width="16" height="16"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://scott.cranton.com/assets/svg/social-icons.svg#rss-icon"></use></svg></a></li>
+        
+    </ul>
+</aside>
+
+            <main class="the-content" role="main">
+                <div class="search" role="search">
+    <div>
+        <div class="show-results-count">0 Results</div>
+        <div class="search-holder">
+            <input type="text" id="search-input" placeholder="search for..." />
+        </div>
+    </div>
+    <ul id="results-container" class="results-container"></ul>
+</div>
+
+
+                <article class="post single" role="article" itemscope itemtype="http://schema.org/BlogPosting">
+    <header class="post-header">
+        <ul>
+            <li><time datetime="2009-10-22T17:16:00-04:00" itemprop="datePublished">22 Oct, 2009</time></li>
+            
+        </ul>
+        <h2 itemprop="name headline">Looking at JBI and Camel</h2>
+    </header>
+
+    <div class="post-content">
+        I've been distracted by doing a couple of <a href="http://fusesource.com/resources/video-archived-webinars/">webinars on Camel</a>&nbsp;so I haven't had a lot of time to spend on digging into my <a href="http://scottcranton.blogspot.com/2009/09/first-try-at-blogging-digging-into.html">original blog post</a>&nbsp;on Camel, CXF, and ServiceMix / JBI working well together. From looking at the JBI spec it seems that for WSDL 1.x, JBI does 'mandate' using the JBI XML wrapper. My sense is that since I'm having the CXF components work with / generate from a WSDL 1.1, it seems reasonable that would wrap the XML message. The other ServiceMix components are magically generating the NMR / WSDL binding for me so apparently its up for debate if the must use the JBI wrapper element - if they generate WSDL 2.0, the wrapper element is optional.<br /><br />From looking at the JMS and HTTP components, its clear that there is a framework in place using Camel interceptors to add the JBI or SOAP envelopes when needed.<br /><br />At this point, I'm going to let the dust settle with Camel 2.0, ServiceMix 4.x, etc. before I dig in more on how to get Camel's jbi endpoint to do the right thing with that jbi message wrapper….
+    </div>
+
+    <footer class="post-footer">
+        <div class="share">Share
+            <ul class="social-networks">
+                <li class="share-facebook"><a href="https://www.facebook.com/sharer.php?s=100&p[title]=Looking at JBI and Camel&p[summary]=&p[url]=https://scott.cranton.com/looking-at-jbi-and-camel.html" class="s_facebook" target="_blank" onclick="window.open(this.href, '','width=700,height=300');return false;"><svg title="" width="16" height="16"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://scott.cranton.com/assets/svg/social-icons.svg#facebook-icon"></use></svg></a></li>
+                <li class="share-twitter"><a href="http://twitter.com/share?url=https://scott.cranton.com/looking-at-jbi-and-camel.html&text=&hashtags=Camel,ServiceMix," rel="noreferrer" target="_blank" onclick="window.open(this.href, '','width=700,height=300');return false;"><svg title="" width="16" height="16"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://scott.cranton.com/assets/svg/social-icons.svg#twitter-icon"></use></svg></a></li>
+            </ul>
+        </div>
+        
+        <div class="tags">
+            <ul>
+                
+                <li><a href="https://scott.cranton.com/tag/Camel">Camel</a></li>
+                
+                <li><a href="https://scott.cranton.com/tag/ServiceMix">ServiceMix</a></li>
+                
+            </ul>
+        </div>
+        
+    </footer>
+</article>
+
+
+            </main>
+        </div>
+
+        <script src="https://scott.cranton.com/assets/js/jquery-1.12.2.min.js"></script>
+<script src="https://scott.cranton.com/assets/js/backtotop.js"></script>
+<script src="https://scott.cranton.com/assets/js/lunr.min.js"></script>
+<script src="https://scott.cranton.com/assets/js/lunr-feed.js"></script>
+<script src="https://scott.cranton.com/assets/js/jquery.fitvids.js"></script>
+<script src="https://scott.cranton.com/assets/js/svg4everybody.min.js"></script>
+<script src="https://scott.cranton.com/assets/js/scripts.js"></script>
+
+
+    <script>
+        (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+                    (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+                m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+        })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+        ga('create', 'UA-134627391-1', 'auto');
+        ga('send', 'pageview');
+    </script>
+
+    </body>
+</html>

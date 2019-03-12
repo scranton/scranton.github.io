@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html>
+    <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>Canary Deployments with Gloo Function Gateway using Weighted Destinations | Scott Cranton &mdash; Solo.io Customer Success </title>
+    <meta property="og:title" content="Canary Deployments with Gloo Function Gateway using Weighted Destinations | Scott Cranton &mdash; Solo.io Customer Success " />
+    <meta name="twitter:title" content="Canary Deployments with Gloo Function Gateway using Weighted Destinations | Scott Cranton &mdash; Solo.io Customer Success " />
+
+    <meta name="description" content="Introduction to Canary releases with Solo.io Gloo, part II">
+    <meta name="description" property="og:description" content="Introduction to Canary releases with Solo.io Gloo, part II" />
+    <meta name="twitter:description" content="Introduction to Canary releases with Solo.io Gloo, part II" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    
+    <meta name="twitter:site" content="@scottcranton" />
+    
+    <meta property="og:url" content="https://scott.cranton.com/canary-deployments-with-weighted-routes.html" />
+
+    <meta property="og:image" content="" />
+    <meta name="twitter:image" content="" />
+
+    <meta name="author" content="Scott Cranton" />
+
+    <meta name="copyright" content="Copyright by Scott Cranton. All Rights Reserved." />
+
+    <style>
+        @font-face {
+            font-family: 'Roboto';
+            font-style: normal;
+            font-weight: 300;
+            src: local('Roboto Light'), local('Roboto-Light'), url(https://fonts.gstatic.com/s/roboto/v15/Hgo13k-tfSpn0qi1SFdUfVtXRa8TVwTICgirnJhmVJw.woff2) format('woff2');
+            unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2212, U+2215, U+E0FF, U+EFFD, U+F000;
+        }
+
+        @font-face {
+            font-family: 'Roboto';
+            font-style: normal;
+            font-weight: 400;
+            src: local('Roboto'), local('Roboto-Regular'), url(https://fonts.gstatic.com/s/roboto/v15/CWB0XYA8bzo0kSThX0UTuA.woff2) format('woff2');
+            unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2212, U+2215, U+E0FF, U+EFFD, U+F000;
+        }
+
+        @font-face {
+            font-family: 'Roboto';
+            font-style: normal;
+            font-weight: 700;
+            src: local('Roboto Bold'), local('Roboto-Bold'), url(https://fonts.gstatic.com/s/roboto/v15/d-6IYplOFocCacKzxwXSOFtXRa8TVwTICgirnJhmVJw.woff2) format('woff2');
+            unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2212, U+2215, U+E0FF, U+EFFD, U+F000;
+        }
+
+        @font-face {
+            font-family: 'Roboto';
+            font-style: normal;
+            font-weight: 900;
+            src: local('Roboto Black'), local('Roboto-Black'), url(https://fonts.gstatic.com/s/roboto/v15/mnpfi9pxYH-Go5UiibESIltXRa8TVwTICgirnJhmVJw.woff2) format('woff2');
+            unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2212, U+2215, U+E0FF, U+EFFD, U+F000;
+        }
+
+        @font-face {
+            font-family: 'Roboto';
+            font-style: italic;
+            font-weight: 300;
+            src: local('Roboto Light Italic'), local('Roboto-LightItalic'), url(https://fonts.gstatic.com/s/roboto/v15/7m8l7TlFO-S3VkhHuR0at44P5ICox8Kq3LLUNMylGO4.woff2) format('woff2');
+            unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2212, U+2215, U+E0FF, U+EFFD, U+F000;
+        }
+
+        @font-face {
+            font-family: 'Roboto';
+            font-style: italic;
+            font-weight: 400;
+            src: local('Roboto Italic'), local('Roboto-Italic'), url(https://fonts.gstatic.com/s/roboto/v15/vPcynSL0qHq_6dX7lKVByfesZW2xOQ-xsNqO47m55DA.woff2) format('woff2');
+            unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2212, U+2215, U+E0FF, U+EFFD, U+F000;
+        }
+
+        @font-face {
+            font-family: 'Roboto';
+            font-style: italic;
+            font-weight: 700;
+            src: local('Roboto Bold Italic'), local('Roboto-BoldItalic'), url(https://fonts.gstatic.com/s/roboto/v15/t6Nd4cfPRhZP44Q5QAjcC44P5ICox8Kq3LLUNMylGO4.woff2) format('woff2');
+            unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2212, U+2215, U+E0FF, U+EFFD, U+F000;
+        }
+
+        @font-face {
+            font-family: 'Roboto';
+            font-style: italic;
+            font-weight: 900;
+            src: local('Roboto Black Italic'), local('Roboto-BlackItalic'), url(https://fonts.gstatic.com/s/roboto/v15/bmC0pGMXrhphrZJmniIZpY4P5ICox8Kq3LLUNMylGO4.woff2) format('woff2');
+            unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2212, U+2215, U+E0FF, U+EFFD, U+F000;
+        }
+    </style>
+    
+    <link href="/favicon.ico" rel="shortcut icon" type="image/x-icon" />
+    
+    <link rel="stylesheet" href="https://scott.cranton.com/assets/css/main.css">
+
+    <link rel="canonical" href="https://scott.cranton.com/canary-deployments-with-weighted-routes.html">
+
+    <link rel="alternate" type="application/rss+xml" title="Scott Cranton" href="https://scott.cranton.com/feed.xml">
+</head>
+
+    <body>
+        <div class="wrapper">
+            <aside class="user-profile fixed" role="complementary">
+    <div class="burger">
+        <input class="trigger hidden" id="toggleBurger" type="checkbox" />
+        <label for="toggleBurger">
+            <span>Navigation</span>
+        </label>
+    </div>
+
+    <div class="compact-header">
+        <a class="avatar" href="https://scott.cranton.com"><img alt="Avatar" src="/scottcranton.png" /></a>
+        <div class="my-info">
+            <strong class="my-name">Scott Cranton</strong>
+            <span class="my-job-title">Solo.io Customer Success</span>
+        </div>
+    </div>
+
+    
+        
+        <div class="mainmenu">
+            <a href="https://scott.cranton.com" >Home</a>
+            
+                
+            
+                
+            
+                
+            
+                
+                    <a href="https://scott.cranton.com/archive/" >Archive</a>
+                
+            
+                
+                    <a href="https://scott.cranton.com/publications/" >Publications</a>
+                
+            
+                
+            
+                
+            
+                
+            
+                
+            
+                
+            
+                
+            
+                
+            
+                
+            
+                
+            
+                
+            
+                
+            
+                
+            
+        </div>
+        
+    
+
+    <p class="about-me">I lead Customer Success at Solo.io. I enjoy hacking tech, and writing about it.</p>
+
+    <ul class="socials">
+        <li><a href="http://twitter.com/scottcranton"><svg title="twitter" width="16" height="16" ><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://scott.cranton.com/assets/svg/social-icons.svg#twitter-icon"></use></svg></a></li><li><a href="https://www.linkedin.com/in/scottcranton/"><svg title="linkedin" width="16" height="16" ><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://scott.cranton.com/assets/svg/social-icons.svg#linkedin-icon"></use></svg></a></li><li><a href="https://github.com/scranton"><svg title="github" width="16" height="16" ><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://scott.cranton.com/assets/svg/social-icons.svg#github-icon"></use></svg></a></li>
+
+        
+
+        
+         <li><a href="https://scott.cranton.com/feed.xml"><svg title="" width="16" height="16"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://scott.cranton.com/assets/svg/social-icons.svg#rss-icon"></use></svg></a></li>
+        
+    </ul>
+</aside>
+
+            <main class="the-content" role="main">
+                <div class="search" role="search">
+    <div>
+        <div class="show-results-count">0 Results</div>
+        <div class="search-holder">
+            <input type="text" id="search-input" placeholder="search for..." />
+        </div>
+    </div>
+    <ul id="results-container" class="results-container"></ul>
+</div>
+
+
+                <article class="post single" role="article" itemscope itemtype="http://schema.org/BlogPosting">
+    <header class="post-header">
+        <ul>
+            <li><time datetime="2019-03-12T10:34:04-04:00" itemprop="datePublished">12 Mar, 2019</time></li>
+            
+        </ul>
+        <h2 itemprop="name headline">Canary Deployments with Gloo Function Gateway using Weighted Destinations</h2>
+    </header>
+
+    <div class="post-content">
+        <figure class="aligncenter">
+    <img src="https://images.unsplash.com/photo-1527248200634-b8bc0b8b28ae?ixlib=rb-1.2.1&amp;ixid=eyJhcHBfaWQiOjEyMDd9&amp;auto=format&amp;fit=crop&amp;w=1939&amp;q=80" />
+    <figcaption>Photo by <a href="https://unsplash.com/@theformfitness" target="_blank">Form</a>.</figcaption>
+</figure>
+
+<p>This is the 3rd post in my 3 part series on doing Canary Releases with <a href="https://solo.io">Solo.io</a> <a href="https://gloo.solo.io">Gloo</a>.</p>
+
+<ul>
+  <li>In part 1, <a href="/function-routing-with-gloo.html">Routing with Gloo Function Gateway</a>,
+you learned how to setup <a href="https://gloo.solo.io">Gloo</a>, and using Gloo to setup some initial function level routing rules.</li>
+  <li>In part 2, <a href="/canary-deployments-with-solo.html">Canary Deployments with Gloo Function Gateway</a>,
+you learned how to setup a conditional routing rule that routed requests to the new version of our service only when
+a request header was present with the correct value.</li>
+  <li>In part 3, <a href="/canary-deployments-with-weighted-routes.html">Canary Deployments with Gloo Function Gateway using Weighted Destinations</a>,
+we used weighted destinations to route a percentage of request traffic to individual upstream services.</li>
+</ul>
+
+<p>This post will show a different way of doing Canary release by using weighted routes to send a fraction of the request
+traffic to the new version (the canary). For example, you could initially route 5% of your request traffic to your new
+version to validate that its working correctly in production without risking too much if your new version fails. As you
+gain confidence in your new version, you can route more and more traffic to it until you cut over completely, i.e. 100%
+to new version, and decommission the old version.</p>
+
+<h2 id="review">Review</h2>
+
+<p>Quickly reviewing the previous 2 posts, we learned that Gloo can help with function level routing, and that routing can
+be used as part of a Canary Release process, that is slowly testing a new version of our service in an environment. In
+the last post, we used Gloo to create a special routing rule to our new version that only forwarded on requests that
+included a specific request header. That allows us to deploy our new service into production, while only allowing
+request traffic from specific clients, i.e. clients that know to set that specific request header. Once we got
+confident that our new version was working as expected, we then changed the Gloo routing rules so that all request
+traffic went to the new service. This is a great way to validate that our new deployment is correctly configured in our
+environment <strong>before</strong> sending any important traffic to it.</p>
+
+<p>In this post, we’re going to expand on that approach with a more sophisticated pattern - weighted routes. With this
+capability we can route a percentage of the request traffic to one or more functions. This enhances our previous header
+based approach as we can now validate that our new service can handle a managed load of traffic, and as we gain
+confidence we can route higher loads to the new version till its handling 100% of the request traffic. If at any point,
+we see errors we can either rollback 100% of traffic to the original working version OR debug our service to better
+understand why it started to have problems handling a faction of our target load, which in theory should help us fix
+our new service version quicker.</p>
+
+<p>You can always combine both the header routing and weighted destination routing, and other routing options Gloo provides.</p>
+
+<h2 id="setup">Setup</h2>
+
+<p>This post assumes you’ve already run thru the <a href="/canary-deployments-with-solo.html">Canary Deployments with Gloo Function Gateway</a>
+post, and that you’ve already got a Kubernetes environment setup with Gloo. If not, please refer back to that post for
+setup instructions and the basics of <code class="highlighter-rouge">VirtualServices</code> and <code class="highlighter-rouge">Routes</code> with Gloo.</p>
+
+<p>By the end of that post, we had 100% of <code class="highlighter-rouge">findPets</code> function traffic going to our <code class="highlighter-rouge">petstore-v2</code> service, and the other
+functions going to the original <code class="highlighter-rouge">petstore-v1</code>. Let’s validate our services before we make any changes.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">export </span><span class="nv">PROXY_URL</span><span class="o">=</span><span class="k">$(</span>glooctl proxy url<span class="k">)</span>
+curl <span class="k">${</span><span class="nv">PROXY_URL</span><span class="k">}</span>/findPets
+</code></pre></div></div>
+
+<p>The call to <code class="highlighter-rouge">findPets</code> should have been routed to <code class="highlighter-rouge">petstore-v2</code>, which should return the following result.</p>
+
+<div class="language-json highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">[{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="s2">"name"</span><span class="p">:</span><span class="s2">"Dog"</span><span class="p">,</span><span class="s2">"status"</span><span class="p">:</span><span class="s2">"v2"</span><span class="p">},{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">2</span><span class="p">,</span><span class="s2">"name"</span><span class="p">:</span><span class="s2">"Cat"</span><span class="p">,</span><span class="s2">"status"</span><span class="p">:</span><span class="s2">"v2"</span><span class="p">},{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span><span class="s2">"name"</span><span class="p">:</span><span class="s2">"Parrot"</span><span class="p">,</span><span class="s2">"status"</span><span class="p">:</span><span class="s2">"v2"</span><span class="p">}]</span><span class="w">
+</span></code></pre></div></div>
+
+<p>And calls to <code class="highlighter-rouge">findPetWithId</code> should route to <code class="highlighter-rouge">petstore-v1</code>, which only has 2 pets (Dog &amp; Cat) each with a status of
+<code class="highlighter-rouge">available</code> and <code class="highlighter-rouge">pending</code> respectively (versus status of <code class="highlighter-rouge">v2</code> for <code class="highlighter-rouge">petstore-v2</code> responses).</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>curl <span class="k">${</span><span class="nv">PROXY_URL</span><span class="k">}</span>/findPetWithId/1
+</code></pre></div></div>
+
+<div class="language-json highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="s2">"name"</span><span class="p">:</span><span class="s2">"Dog"</span><span class="p">,</span><span class="s2">"status"</span><span class="p">:</span><span class="s2">"available"</span><span class="p">}</span><span class="w">
+</span></code></pre></div></div>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>curl <span class="k">${</span><span class="nv">PROXY_URL</span><span class="k">}</span>/findPetWithId/2
+</code></pre></div></div>
+
+<div class="language-json highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">2</span><span class="p">,</span><span class="s2">"name"</span><span class="p">:</span><span class="s2">"Cat"</span><span class="p">,</span><span class="s2">"status"</span><span class="p">:</span><span class="s2">"pending"</span><span class="p">}</span><span class="w">
+</span></code></pre></div></div>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>curl <span class="k">${</span><span class="nv">PROXY_URL</span><span class="k">}</span>/findPetWithId/3
+</code></pre></div></div>
+
+<div class="language-json highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">{</span><span class="s2">"code"</span><span class="p">:</span><span class="mi">404</span><span class="p">,</span><span class="s2">"message"</span><span class="p">:</span><span class="s2">"not found: pet 3"</span><span class="p">}</span><span class="w">                                                                                                                                                                                             
+</span></code></pre></div></div>
+
+<p>So let’s play with doing a Canary Release with weighted destinations to migrate the <code class="highlighter-rouge">findPetWithId</code> function.</p>
+
+<h2 id="setting-up-weighted-destinations-in-gloo">Setting up Weighted Destinations in Gloo</h2>
+
+<p>Let’s start by looking at our existing, virtual service <code class="highlighter-rouge">coalmine</code></p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kubectl get virtualservice coalmine <span class="nt">--namespace</span> gloo-system <span class="nt">--output</span> yaml
+</code></pre></div></div>
+
+<div class="language-yaml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="na">apiVersion</span><span class="pi">:</span> <span class="s">gateway.solo.io/v1</span>
+<span class="na">kind</span><span class="pi">:</span> <span class="s">VirtualService</span>
+<span class="na">metadata</span><span class="pi">:</span>
+  <span class="na">name</span><span class="pi">:</span> <span class="s">coalmine</span>
+  <span class="na">namespace</span><span class="pi">:</span> <span class="s">gloo-system</span>
+<span class="na">spec</span><span class="pi">:</span>
+  <span class="na">displayName</span><span class="pi">:</span> <span class="s">coalmine</span>
+  <span class="na">virtualHost</span><span class="pi">:</span>
+    <span class="na">domains</span><span class="pi">:</span>
+    <span class="pi">-</span> <span class="s1">'</span><span class="s">*'</span>
+    <span class="na">name</span><span class="pi">:</span> <span class="s">gloo-system.coalmine</span>
+    <span class="na">routes</span><span class="pi">:</span>
+    <span class="pi">-</span> <span class="na">matcher</span><span class="pi">:</span>
+        <span class="na">prefix</span><span class="pi">:</span> <span class="s">/findPets</span>
+      <span class="na">routeAction</span><span class="pi">:</span>
+        <span class="na">single</span><span class="pi">:</span>
+          <span class="na">destinationSpec</span><span class="pi">:</span>
+            <span class="na">rest</span><span class="pi">:</span>
+              <span class="na">functionName</span><span class="pi">:</span> <span class="s">findPets</span>
+              <span class="na">parameters</span><span class="pi">:</span> <span class="pi">{}</span>
+          <span class="na">upstream</span><span class="pi">:</span>
+            <span class="na">name</span><span class="pi">:</span> <span class="s">default-petstore-v2-8080</span>
+            <span class="na">namespace</span><span class="pi">:</span> <span class="s">gloo-system</span>
+    <span class="pi">-</span> <span class="na">matcher</span><span class="pi">:</span>
+        <span class="na">prefix</span><span class="pi">:</span> <span class="s">/findPetWithId</span>
+      <span class="na">routeAction</span><span class="pi">:</span>
+        <span class="na">single</span><span class="pi">:</span>
+          <span class="na">destinationSpec</span><span class="pi">:</span>
+            <span class="na">rest</span><span class="pi">:</span>
+              <span class="na">functionName</span><span class="pi">:</span> <span class="s">findPetById</span>
+              <span class="na">parameters</span><span class="pi">:</span>
+                <span class="na">headers</span><span class="pi">:</span>
+                  <span class="s">:path</span><span class="pi">:</span> <span class="s">/findPetWithId/{id}</span>
+          <span class="na">upstream</span><span class="pi">:</span>
+            <span class="na">name</span><span class="pi">:</span> <span class="s">default-petstore-v1-8080</span>
+            <span class="na">namespace</span><span class="pi">:</span> <span class="s">gloo-system</span>
+    <span class="pi">-</span> <span class="na">matcher</span><span class="pi">:</span>
+        <span class="na">prefix</span><span class="pi">:</span> <span class="s">/petstore</span>
+      <span class="na">routeAction</span><span class="pi">:</span>
+        <span class="na">single</span><span class="pi">:</span>
+          <span class="na">upstream</span><span class="pi">:</span>
+            <span class="na">name</span><span class="pi">:</span> <span class="s">default-petstore-v1-8080</span>
+            <span class="na">namespace</span><span class="pi">:</span> <span class="s">gloo-system</span>
+      <span class="na">routePlugins</span><span class="pi">:</span>
+        <span class="na">prefixRewrite</span><span class="pi">:</span>
+          <span class="na">prefixRewrite</span><span class="pi">:</span> <span class="s">/api/pets/</span>
+</code></pre></div></div>
+
+<p>To create a weighted destination, we need to change the <code class="highlighter-rouge">routeAction</code> from <code class="highlighter-rouge">single</code> to <code class="highlighter-rouge">multi</code>
+and provide 2+ <code class="highlighter-rouge">destination</code>, which are <code class="highlighter-rouge">destinationSpec</code> with <code class="highlighter-rouge">weight</code>. For example, to route
+10% of request traffic to <code class="highlighter-rouge">findPetWithId</code> to <code class="highlighter-rouge">petstore-v2</code> and the remaining 90% to <code class="highlighter-rouge">petstore-v1</code>.</p>
+
+<div class="language-yaml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="s">cat &lt;&lt;EOF | kubectl apply -f -</span>
+<span class="nn">---</span>
+<span class="na">apiVersion</span><span class="pi">:</span> <span class="s">gateway.solo.io/v1</span>
+<span class="na">kind</span><span class="pi">:</span> <span class="s">VirtualService</span>
+<span class="na">metadata</span><span class="pi">:</span>
+  <span class="na">name</span><span class="pi">:</span> <span class="s">coalmine</span>
+  <span class="na">namespace</span><span class="pi">:</span> <span class="s">gloo-system</span>
+<span class="na">spec</span><span class="pi">:</span>
+  <span class="na">displayName</span><span class="pi">:</span> <span class="s">coalmine</span>
+  <span class="na">virtualHost</span><span class="pi">:</span>
+    <span class="na">domains</span><span class="pi">:</span>
+    <span class="pi">-</span> <span class="s1">'</span><span class="s">*'</span>
+    <span class="na">name</span><span class="pi">:</span> <span class="s">gloo-system.coalmine</span>
+    <span class="na">routes</span><span class="pi">:</span>
+    <span class="pi">-</span> <span class="na">matcher</span><span class="pi">:</span>
+        <span class="na">prefix</span><span class="pi">:</span> <span class="s">/findPets</span>
+      <span class="na">routeAction</span><span class="pi">:</span>
+        <span class="na">single</span><span class="pi">:</span>
+          <span class="na">destinationSpec</span><span class="pi">:</span>
+            <span class="na">rest</span><span class="pi">:</span>
+              <span class="na">functionName</span><span class="pi">:</span> <span class="s">findPets</span>
+              <span class="na">parameters</span><span class="pi">:</span> <span class="pi">{}</span>
+          <span class="na">upstream</span><span class="pi">:</span>
+            <span class="na">name</span><span class="pi">:</span> <span class="s">default-petstore-v2-8080</span>
+            <span class="na">namespace</span><span class="pi">:</span> <span class="s">gloo-system</span>
+    <span class="pi">-</span> <span class="na">matcher</span><span class="pi">:</span>
+        <span class="na">prefix</span><span class="pi">:</span> <span class="s">/findPetWithId</span>
+      <span class="na">routeAction</span><span class="pi">:</span>
+        <span class="na">multi</span><span class="pi">:</span>
+          <span class="na">destinations</span><span class="pi">:</span>
+          <span class="pi">-</span> <span class="na">destination</span><span class="pi">:</span>
+              <span class="na">destinationSpec</span><span class="pi">:</span>
+                <span class="na">rest</span><span class="pi">:</span>
+                  <span class="na">functionName</span><span class="pi">:</span> <span class="s">findPetById</span>
+                  <span class="na">parameters</span><span class="pi">:</span>
+                    <span class="na">headers</span><span class="pi">:</span>
+                      <span class="s">:path</span><span class="pi">:</span> <span class="s">/findPetWithId/{id}</span>
+              <span class="na">upstream</span><span class="pi">:</span>
+                <span class="na">name</span><span class="pi">:</span> <span class="s">default-petstore-v2-8080</span>
+                <span class="na">namespace</span><span class="pi">:</span> <span class="s">gloo-system</span>
+            <span class="na">weight</span><span class="pi">:</span> <span class="s">10</span>
+          <span class="pi">-</span> <span class="na">destination</span><span class="pi">:</span>
+              <span class="na">destinationSpec</span><span class="pi">:</span>
+                <span class="na">rest</span><span class="pi">:</span>
+                  <span class="na">functionName</span><span class="pi">:</span> <span class="s">findPetById</span>
+                  <span class="na">parameters</span><span class="pi">:</span>
+                    <span class="na">headers</span><span class="pi">:</span>
+                      <span class="s">:path</span><span class="pi">:</span> <span class="s">/findPetWithId/{id}</span>
+              <span class="na">upstream</span><span class="pi">:</span>
+                <span class="na">name</span><span class="pi">:</span> <span class="s">default-petstore-v1-8080</span>
+                <span class="na">namespace</span><span class="pi">:</span> <span class="s">gloo-system</span>
+            <span class="na">weight</span><span class="pi">:</span> <span class="s">90</span>
+    <span class="pi">-</span> <span class="na">matcher</span><span class="pi">:</span>
+        <span class="na">prefix</span><span class="pi">:</span> <span class="s">/petstore</span>
+      <span class="na">routeAction</span><span class="pi">:</span>
+        <span class="na">single</span><span class="pi">:</span>
+          <span class="na">upstream</span><span class="pi">:</span>
+            <span class="na">name</span><span class="pi">:</span> <span class="s">default-petstore-v1-8080</span>
+            <span class="na">namespace</span><span class="pi">:</span> <span class="s">gloo-system</span>
+      <span class="na">routePlugins</span><span class="pi">:</span>
+        <span class="na">prefixRewrite</span><span class="pi">:</span>
+          <span class="na">prefixRewrite</span><span class="pi">:</span> <span class="s">/api/pets/</span>
+<span class="s">EOF</span>
+</code></pre></div></div>
+
+<p>Let’s run a shell loop to test, remember that <code class="highlighter-rouge">petstore-v2</code> responses have a <code class="highlighter-rouge">status</code> field of <code class="highlighter-rouge">v2</code>. The following
+command will call our function 20 times, and we should see ~2 responses (~10%) return with <code class="highlighter-rouge">"status":"v2"</code>.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">COUNTER</span><span class="o">=</span>0
+<span class="k">while</span> <span class="o">[</span> <span class="nv">$COUNTER</span> <span class="nt">-lt</span> 20 <span class="o">]</span><span class="p">;</span> <span class="k">do
+    </span>curl <span class="k">${</span><span class="nv">PROXY_URL</span><span class="k">}</span>/findPetWithId/1
+    <span class="nb">let </span><span class="nv">COUNTER</span><span class="o">=</span>COUNTER+1
+<span class="k">done</span>
+</code></pre></div></div>
+
+<div class="language-json highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="s2">"name"</span><span class="p">:</span><span class="s2">"Dog"</span><span class="p">,</span><span class="s2">"status"</span><span class="p">:</span><span class="s2">"available"</span><span class="p">}</span><span class="w">
+</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="s2">"name"</span><span class="p">:</span><span class="s2">"Dog"</span><span class="p">,</span><span class="s2">"status"</span><span class="p">:</span><span class="s2">"available"</span><span class="p">}</span><span class="w">
+</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="s2">"name"</span><span class="p">:</span><span class="s2">"Dog"</span><span class="p">,</span><span class="s2">"status"</span><span class="p">:</span><span class="s2">"available"</span><span class="p">}</span><span class="w">
+</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="s2">"name"</span><span class="p">:</span><span class="s2">"Dog"</span><span class="p">,</span><span class="s2">"status"</span><span class="p">:</span><span class="s2">"available"</span><span class="p">}</span><span class="w">
+</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="s2">"name"</span><span class="p">:</span><span class="s2">"Dog"</span><span class="p">,</span><span class="s2">"status"</span><span class="p">:</span><span class="s2">"available"</span><span class="p">}</span><span class="w">
+</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="s2">"name"</span><span class="p">:</span><span class="s2">"Dog"</span><span class="p">,</span><span class="s2">"status"</span><span class="p">:</span><span class="s2">"available"</span><span class="p">}</span><span class="w">
+</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="s2">"name"</span><span class="p">:</span><span class="s2">"Dog"</span><span class="p">,</span><span class="s2">"status"</span><span class="p">:</span><span class="s2">"available"</span><span class="p">}</span><span class="w">
+</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="s2">"name"</span><span class="p">:</span><span class="s2">"Dog"</span><span class="p">,</span><span class="s2">"status"</span><span class="p">:</span><span class="s2">"available"</span><span class="p">}</span><span class="w">
+</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="s2">"name"</span><span class="p">:</span><span class="s2">"Dog"</span><span class="p">,</span><span class="s2">"status"</span><span class="p">:</span><span class="s2">"v2"</span><span class="p">}</span><span class="w">
+</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="s2">"name"</span><span class="p">:</span><span class="s2">"Dog"</span><span class="p">,</span><span class="s2">"status"</span><span class="p">:</span><span class="s2">"available"</span><span class="p">}</span><span class="w">
+</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="s2">"name"</span><span class="p">:</span><span class="s2">"Dog"</span><span class="p">,</span><span class="s2">"status"</span><span class="p">:</span><span class="s2">"available"</span><span class="p">}</span><span class="w">
+</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="s2">"name"</span><span class="p">:</span><span class="s2">"Dog"</span><span class="p">,</span><span class="s2">"status"</span><span class="p">:</span><span class="s2">"available"</span><span class="p">}</span><span class="w">
+</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="s2">"name"</span><span class="p">:</span><span class="s2">"Dog"</span><span class="p">,</span><span class="s2">"status"</span><span class="p">:</span><span class="s2">"available"</span><span class="p">}</span><span class="w">
+</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="s2">"name"</span><span class="p">:</span><span class="s2">"Dog"</span><span class="p">,</span><span class="s2">"status"</span><span class="p">:</span><span class="s2">"v2"</span><span class="p">}</span><span class="w">
+</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="s2">"name"</span><span class="p">:</span><span class="s2">"Dog"</span><span class="p">,</span><span class="s2">"status"</span><span class="p">:</span><span class="s2">"available"</span><span class="p">}</span><span class="w">
+</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="s2">"name"</span><span class="p">:</span><span class="s2">"Dog"</span><span class="p">,</span><span class="s2">"status"</span><span class="p">:</span><span class="s2">"available"</span><span class="p">}</span><span class="w">
+</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="s2">"name"</span><span class="p">:</span><span class="s2">"Dog"</span><span class="p">,</span><span class="s2">"status"</span><span class="p">:</span><span class="s2">"available"</span><span class="p">}</span><span class="w">
+</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="s2">"name"</span><span class="p">:</span><span class="s2">"Dog"</span><span class="p">,</span><span class="s2">"status"</span><span class="p">:</span><span class="s2">"available"</span><span class="p">}</span><span class="w">
+</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="s2">"name"</span><span class="p">:</span><span class="s2">"Dog"</span><span class="p">,</span><span class="s2">"status"</span><span class="p">:</span><span class="s2">"available"</span><span class="p">}</span><span class="w">
+</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="s2">"name"</span><span class="p">:</span><span class="s2">"Dog"</span><span class="p">,</span><span class="s2">"status"</span><span class="p">:</span><span class="s2">"available"</span><span class="p">}</span><span class="w">
+</span></code></pre></div></div>
+
+<p>Now if we want to increase the traffic to our new version, we just need to update the <code class="highlighter-rouge">weight</code> attibutes in the 2
+<code class="highlighter-rouge">destination</code> objects. Gloo sums all of the <code class="highlighter-rouge">weight</code> values within a given weighted destination route, and routes the
+respective percentage to each destination. So if we set both route weights to <code class="highlighter-rouge">1</code> then each route would get <code class="highlighter-rouge">1/2</code> or 50%
+of the request traffic. I’d recommend setting the values with a sum of 100 so they look like percentages for greater
+readability. The following example will update our routes to do 50/50 traffic split.</p>
+
+<div class="language-yaml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="s">cat &lt;&lt;EOF | kubectl apply -f -</span>
+<span class="nn">---</span>
+<span class="na">apiVersion</span><span class="pi">:</span> <span class="s">gateway.solo.io/v1</span>
+<span class="na">kind</span><span class="pi">:</span> <span class="s">VirtualService</span>
+<span class="na">metadata</span><span class="pi">:</span>
+  <span class="na">name</span><span class="pi">:</span> <span class="s">coalmine</span>
+  <span class="na">namespace</span><span class="pi">:</span> <span class="s">gloo-system</span>
+<span class="na">spec</span><span class="pi">:</span>
+  <span class="na">displayName</span><span class="pi">:</span> <span class="s">coalmine</span>
+  <span class="na">virtualHost</span><span class="pi">:</span>
+    <span class="na">domains</span><span class="pi">:</span>
+    <span class="pi">-</span> <span class="s1">'</span><span class="s">*'</span>
+    <span class="na">name</span><span class="pi">:</span> <span class="s">gloo-system.coalmine</span>
+    <span class="na">routes</span><span class="pi">:</span>
+    <span class="pi">-</span> <span class="na">matcher</span><span class="pi">:</span>
+        <span class="na">prefix</span><span class="pi">:</span> <span class="s">/findPets</span>
+      <span class="na">routeAction</span><span class="pi">:</span>
+        <span class="na">single</span><span class="pi">:</span>
+          <span class="na">destinationSpec</span><span class="pi">:</span>
+            <span class="na">rest</span><span class="pi">:</span>
+              <span class="na">functionName</span><span class="pi">:</span> <span class="s">findPets</span>
+              <span class="na">parameters</span><span class="pi">:</span> <span class="pi">{}</span>
+          <span class="na">upstream</span><span class="pi">:</span>
+            <span class="na">name</span><span class="pi">:</span> <span class="s">default-petstore-v2-8080</span>
+            <span class="na">namespace</span><span class="pi">:</span> <span class="s">gloo-system</span>
+    <span class="pi">-</span> <span class="na">matcher</span><span class="pi">:</span>
+        <span class="na">prefix</span><span class="pi">:</span> <span class="s">/findPetWithId</span>
+      <span class="na">routeAction</span><span class="pi">:</span>
+        <span class="na">multi</span><span class="pi">:</span>
+          <span class="na">destinations</span><span class="pi">:</span>
+          <span class="pi">-</span> <span class="na">destination</span><span class="pi">:</span>
+              <span class="na">destinationSpec</span><span class="pi">:</span>
+                <span class="na">rest</span><span class="pi">:</span>
+                  <span class="na">functionName</span><span class="pi">:</span> <span class="s">findPetById</span>
+                  <span class="na">parameters</span><span class="pi">:</span>
+                    <span class="na">headers</span><span class="pi">:</span>
+                      <span class="s">:path</span><span class="pi">:</span> <span class="s">/findPetWithId/{id}</span>
+              <span class="na">upstream</span><span class="pi">:</span>
+                <span class="na">name</span><span class="pi">:</span> <span class="s">default-petstore-v2-8080</span>
+                <span class="na">namespace</span><span class="pi">:</span> <span class="s">gloo-system</span>
+            <span class="na">weight</span><span class="pi">:</span> <span class="s">50</span>
+          <span class="pi">-</span> <span class="na">destination</span><span class="pi">:</span>
+              <span class="na">destinationSpec</span><span class="pi">:</span>
+                <span class="na">rest</span><span class="pi">:</span>
+                  <span class="na">functionName</span><span class="pi">:</span> <span class="s">findPetById</span>
+                  <span class="na">parameters</span><span class="pi">:</span>
+                    <span class="na">headers</span><span class="pi">:</span>
+                      <span class="s">:path</span><span class="pi">:</span> <span class="s">/findPetWithId/{id}</span>
+              <span class="na">upstream</span><span class="pi">:</span>
+                <span class="na">name</span><span class="pi">:</span> <span class="s">default-petstore-v1-8080</span>
+                <span class="na">namespace</span><span class="pi">:</span> <span class="s">gloo-system</span>
+            <span class="na">weight</span><span class="pi">:</span> <span class="s">50</span>
+    <span class="pi">-</span> <span class="na">matcher</span><span class="pi">:</span>
+        <span class="na">prefix</span><span class="pi">:</span> <span class="s">/petstore</span>
+      <span class="na">routeAction</span><span class="pi">:</span>
+        <span class="na">single</span><span class="pi">:</span>
+          <span class="na">upstream</span><span class="pi">:</span>
+            <span class="na">name</span><span class="pi">:</span> <span class="s">default-petstore-v1-8080</span>
+            <span class="na">namespace</span><span class="pi">:</span> <span class="s">gloo-system</span>
+      <span class="na">routePlugins</span><span class="pi">:</span>
+        <span class="na">prefixRewrite</span><span class="pi">:</span>
+          <span class="na">prefixRewrite</span><span class="pi">:</span> <span class="s">/api/pets/</span>
+<span class="s">EOF</span>
+</code></pre></div></div>
+
+<p>And if we run our test loop again, we should see about 10 of the 20 requests returning <code class="highlighter-rouge">"status":"v2</code>.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">COUNTER</span><span class="o">=</span>0
+<span class="k">while</span> <span class="o">[</span> <span class="nv">$COUNTER</span> <span class="nt">-lt</span> 20 <span class="o">]</span><span class="p">;</span> <span class="k">do
+    </span>curl <span class="k">${</span><span class="nv">PROXY_URL</span><span class="k">}</span>/findPetWithId/1
+    <span class="nb">let </span><span class="nv">COUNTER</span><span class="o">=</span>COUNTER+1
+<span class="k">done</span>
+</code></pre></div></div>
+
+<div class="language-json highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="s2">"name"</span><span class="p">:</span><span class="s2">"Dog"</span><span class="p">,</span><span class="s2">"status"</span><span class="p">:</span><span class="s2">"v2"</span><span class="p">}</span><span class="w">
+</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="s2">"name"</span><span class="p">:</span><span class="s2">"Dog"</span><span class="p">,</span><span class="s2">"status"</span><span class="p">:</span><span class="s2">"v2"</span><span class="p">}</span><span class="w">
+</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="s2">"name"</span><span class="p">:</span><span class="s2">"Dog"</span><span class="p">,</span><span class="s2">"status"</span><span class="p">:</span><span class="s2">"v2"</span><span class="p">}</span><span class="w">
+</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="s2">"name"</span><span class="p">:</span><span class="s2">"Dog"</span><span class="p">,</span><span class="s2">"status"</span><span class="p">:</span><span class="s2">"available"</span><span class="p">}</span><span class="w">
+</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="s2">"name"</span><span class="p">:</span><span class="s2">"Dog"</span><span class="p">,</span><span class="s2">"status"</span><span class="p">:</span><span class="s2">"v2"</span><span class="p">}</span><span class="w">
+</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="s2">"name"</span><span class="p">:</span><span class="s2">"Dog"</span><span class="p">,</span><span class="s2">"status"</span><span class="p">:</span><span class="s2">"available"</span><span class="p">}</span><span class="w">
+</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="s2">"name"</span><span class="p">:</span><span class="s2">"Dog"</span><span class="p">,</span><span class="s2">"status"</span><span class="p">:</span><span class="s2">"available"</span><span class="p">}</span><span class="w">
+</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="s2">"name"</span><span class="p">:</span><span class="s2">"Dog"</span><span class="p">,</span><span class="s2">"status"</span><span class="p">:</span><span class="s2">"v2"</span><span class="p">}</span><span class="w">
+</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="s2">"name"</span><span class="p">:</span><span class="s2">"Dog"</span><span class="p">,</span><span class="s2">"status"</span><span class="p">:</span><span class="s2">"v2"</span><span class="p">}</span><span class="w">
+</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="s2">"name"</span><span class="p">:</span><span class="s2">"Dog"</span><span class="p">,</span><span class="s2">"status"</span><span class="p">:</span><span class="s2">"available"</span><span class="p">}</span><span class="w">
+</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="s2">"name"</span><span class="p">:</span><span class="s2">"Dog"</span><span class="p">,</span><span class="s2">"status"</span><span class="p">:</span><span class="s2">"v2"</span><span class="p">}</span><span class="w">
+</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="s2">"name"</span><span class="p">:</span><span class="s2">"Dog"</span><span class="p">,</span><span class="s2">"status"</span><span class="p">:</span><span class="s2">"v2"</span><span class="p">}</span><span class="w">
+</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="s2">"name"</span><span class="p">:</span><span class="s2">"Dog"</span><span class="p">,</span><span class="s2">"status"</span><span class="p">:</span><span class="s2">"available"</span><span class="p">}</span><span class="w">
+</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="s2">"name"</span><span class="p">:</span><span class="s2">"Dog"</span><span class="p">,</span><span class="s2">"status"</span><span class="p">:</span><span class="s2">"available"</span><span class="p">}</span><span class="w">
+</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="s2">"name"</span><span class="p">:</span><span class="s2">"Dog"</span><span class="p">,</span><span class="s2">"status"</span><span class="p">:</span><span class="s2">"v2"</span><span class="p">}</span><span class="w">
+</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="s2">"name"</span><span class="p">:</span><span class="s2">"Dog"</span><span class="p">,</span><span class="s2">"status"</span><span class="p">:</span><span class="s2">"v2"</span><span class="p">}</span><span class="w">
+</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="s2">"name"</span><span class="p">:</span><span class="s2">"Dog"</span><span class="p">,</span><span class="s2">"status"</span><span class="p">:</span><span class="s2">"available"</span><span class="p">}</span><span class="w">
+</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="s2">"name"</span><span class="p">:</span><span class="s2">"Dog"</span><span class="p">,</span><span class="s2">"status"</span><span class="p">:</span><span class="s2">"available"</span><span class="p">}</span><span class="w">
+</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="s2">"name"</span><span class="p">:</span><span class="s2">"Dog"</span><span class="p">,</span><span class="s2">"status"</span><span class="p">:</span><span class="s2">"available"</span><span class="p">}</span><span class="w">
+</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="s2">"name"</span><span class="p">:</span><span class="s2">"Dog"</span><span class="p">,</span><span class="s2">"status"</span><span class="p">:</span><span class="s2">"v2"</span><span class="p">}</span><span class="w">
+</span></code></pre></div></div>
+
+<h2 id="summary">Summary</h2>
+
+<p>This series has hopefully given you all a taste of how <a href="https://solo.io">Solo.io</a> <a href="https://gloo.solo.io">Gloo</a> can help
+you create more interesting applications, and also enhance your application delivery approaches. These posts have shown
+how to do function level request routing, and how you can enhance those routing rules by requiring presence of request
+headers and doing managed load balancing by specifying the percentage of traffic going to individual upstream
+destinations. Gloo supports many more options, and I hope you’ll continue your journey by going to <a href="https://gloo.solo.io">https://gloo.solo.io</a>
+to learn more.</p>
+
+    </div>
+
+    <footer class="post-footer">
+        <div class="share">Share
+            <ul class="social-networks">
+                <li class="share-facebook"><a href="https://www.facebook.com/sharer.php?s=100&p[title]=Canary Deployments with Gloo Function Gateway using Weighted Destinations&p[summary]=Introduction to Canary releases with Solo.io Gloo, part II&p[url]=https://scott.cranton.com/canary-deployments-with-weighted-routes.html" class="s_facebook" target="_blank" onclick="window.open(this.href, '','width=700,height=300');return false;"><svg title="" width="16" height="16"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://scott.cranton.com/assets/svg/social-icons.svg#facebook-icon"></use></svg></a></li>
+                <li class="share-twitter"><a href="http://twitter.com/share?url=https://scott.cranton.com/canary-deployments-with-weighted-routes.html&text=Introduction to Canary releases with Solo.io Gloo, part II&hashtags=Gloo,Canary," rel="noreferrer" target="_blank" onclick="window.open(this.href, '','width=700,height=300');return false;"><svg title="" width="16" height="16"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://scott.cranton.com/assets/svg/social-icons.svg#twitter-icon"></use></svg></a></li>
+            </ul>
+        </div>
+        
+        <div class="tags">
+            <ul>
+                
+                <li><a href="https://scott.cranton.com/tag/Gloo">Gloo</a></li>
+                
+                <li><a href="https://scott.cranton.com/tag/Canary">Canary</a></li>
+                
+            </ul>
+        </div>
+        
+    </footer>
+</article>
+
+
+<aside class="comments" role="complementary">
+    <div id="disqus_thread"></div>
+    <script>
+        var disqus_config = function () {
+            this.page.url = 'https://scott.cranton.com/canary-deployments-with-weighted-routes.html';
+            this.page.identifier = '3/12/2019';
+        };
+        (function() {
+            var d = document, s = d.createElement('script');
+
+            s.src = '//scott-cranton-blog.disqus.com/embed.js';
+
+            s.setAttribute('data-timestamp', +new Date());
+            (d.head || d.body).appendChild(s);
+        })();
+    </script>
+</aside>
+
+            </main>
+        </div>
+
+        <script src="https://scott.cranton.com/assets/js/jquery-1.12.2.min.js"></script>
+<script src="https://scott.cranton.com/assets/js/backtotop.js"></script>
+<script src="https://scott.cranton.com/assets/js/lunr.min.js"></script>
+<script src="https://scott.cranton.com/assets/js/lunr-feed.js"></script>
+<script src="https://scott.cranton.com/assets/js/jquery.fitvids.js"></script>
+<script src="https://scott.cranton.com/assets/js/svg4everybody.min.js"></script>
+<script src="https://scott.cranton.com/assets/js/scripts.js"></script>
+
+
+    <script>
+        (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+                    (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+                m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+        })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+        ga('create', 'UA-134627391-1', 'auto');
+        ga('send', 'pageview');
+    </script>
+
+    </body>
+</html>
