@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html>
+    <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>Kubernetes Ingress Control using Gloo | Scott Cranton &mdash; Solo.io Customer Success </title>
+    <meta property="og:title" content="Kubernetes Ingress Control using Gloo | Scott Cranton &mdash; Solo.io Customer Success " />
+    <meta name="twitter:title" content="Kubernetes Ingress Control using Gloo | Scott Cranton &mdash; Solo.io Customer Success " />
+
+    <meta name="description" content="Setting up Gloo to be your Kubernetes Ingress controller">
+    <meta name="description" property="og:description" content="Setting up Gloo to be your Kubernetes Ingress controller" />
+    <meta name="twitter:description" content="Setting up Gloo to be your Kubernetes Ingress controller" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    
+    <meta name="twitter:site" content="@scottcranton" />
+    
+    <meta property="og:url" content="https://scott.cranton.com/kubernetes-ingress-controlling-with-gloo.html" />
+
+    <meta property="og:image" content="" />
+    <meta name="twitter:image" content="" />
+
+    <meta name="author" content="Scott Cranton" />
+
+    <meta name="copyright" content="Copyright by Scott Cranton. All Rights Reserved." />
+
+    <style>
+        @font-face {
+            font-family: 'Roboto';
+            font-style: normal;
+            font-weight: 300;
+            src: local('Roboto Light'), local('Roboto-Light'), url(https://fonts.gstatic.com/s/roboto/v15/Hgo13k-tfSpn0qi1SFdUfVtXRa8TVwTICgirnJhmVJw.woff2) format('woff2');
+            unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2212, U+2215, U+E0FF, U+EFFD, U+F000;
+        }
+
+        @font-face {
+            font-family: 'Roboto';
+            font-style: normal;
+            font-weight: 400;
+            src: local('Roboto'), local('Roboto-Regular'), url(https://fonts.gstatic.com/s/roboto/v15/CWB0XYA8bzo0kSThX0UTuA.woff2) format('woff2');
+            unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2212, U+2215, U+E0FF, U+EFFD, U+F000;
+        }
+
+        @font-face {
+            font-family: 'Roboto';
+            font-style: normal;
+            font-weight: 700;
+            src: local('Roboto Bold'), local('Roboto-Bold'), url(https://fonts.gstatic.com/s/roboto/v15/d-6IYplOFocCacKzxwXSOFtXRa8TVwTICgirnJhmVJw.woff2) format('woff2');
+            unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2212, U+2215, U+E0FF, U+EFFD, U+F000;
+        }
+
+        @font-face {
+            font-family: 'Roboto';
+            font-style: normal;
+            font-weight: 900;
+            src: local('Roboto Black'), local('Roboto-Black'), url(https://fonts.gstatic.com/s/roboto/v15/mnpfi9pxYH-Go5UiibESIltXRa8TVwTICgirnJhmVJw.woff2) format('woff2');
+            unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2212, U+2215, U+E0FF, U+EFFD, U+F000;
+        }
+
+        @font-face {
+            font-family: 'Roboto';
+            font-style: italic;
+            font-weight: 300;
+            src: local('Roboto Light Italic'), local('Roboto-LightItalic'), url(https://fonts.gstatic.com/s/roboto/v15/7m8l7TlFO-S3VkhHuR0at44P5ICox8Kq3LLUNMylGO4.woff2) format('woff2');
+            unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2212, U+2215, U+E0FF, U+EFFD, U+F000;
+        }
+
+        @font-face {
+            font-family: 'Roboto';
+            font-style: italic;
+            font-weight: 400;
+            src: local('Roboto Italic'), local('Roboto-Italic'), url(https://fonts.gstatic.com/s/roboto/v15/vPcynSL0qHq_6dX7lKVByfesZW2xOQ-xsNqO47m55DA.woff2) format('woff2');
+            unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2212, U+2215, U+E0FF, U+EFFD, U+F000;
+        }
+
+        @font-face {
+            font-family: 'Roboto';
+            font-style: italic;
+            font-weight: 700;
+            src: local('Roboto Bold Italic'), local('Roboto-BoldItalic'), url(https://fonts.gstatic.com/s/roboto/v15/t6Nd4cfPRhZP44Q5QAjcC44P5ICox8Kq3LLUNMylGO4.woff2) format('woff2');
+            unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2212, U+2215, U+E0FF, U+EFFD, U+F000;
+        }
+
+        @font-face {
+            font-family: 'Roboto';
+            font-style: italic;
+            font-weight: 900;
+            src: local('Roboto Black Italic'), local('Roboto-BlackItalic'), url(https://fonts.gstatic.com/s/roboto/v15/bmC0pGMXrhphrZJmniIZpY4P5ICox8Kq3LLUNMylGO4.woff2) format('woff2');
+            unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2212, U+2215, U+E0FF, U+EFFD, U+F000;
+        }
+    </style>
+    
+    <link href="/favicon.ico" rel="shortcut icon" type="image/x-icon" />
+    
+    <link rel="stylesheet" href="https://scott.cranton.com/assets/css/main.css">
+
+    <link rel="canonical" href="https://scott.cranton.com/kubernetes-ingress-controlling-with-gloo.html">
+
+    <link rel="alternate" type="application/rss+xml" title="Scott Cranton" href="https://scott.cranton.com/feed.xml">
+</head>
+
+    <body>
+        <div class="wrapper">
+            <aside class="user-profile fixed" role="complementary">
+    <div class="burger">
+        <input class="trigger hidden" id="toggleBurger" type="checkbox" />
+        <label for="toggleBurger">
+            <span>Navigation</span>
+        </label>
+    </div>
+
+    <div class="compact-header">
+        <a class="avatar" href="https://scott.cranton.com"><img alt="Avatar" src="/scottcranton.png" /></a>
+        <div class="my-info">
+            <strong class="my-name">Scott Cranton</strong>
+            <span class="my-job-title">Solo.io Customer Success</span>
+        </div>
+    </div>
+
+    
+        
+        <div class="mainmenu">
+            <a href="https://scott.cranton.com" >Home</a>
+            
+                
+            
+                
+            
+                
+            
+                
+                    <a href="https://scott.cranton.com/archive/" >Archive</a>
+                
+            
+                
+                    <a href="https://scott.cranton.com/publications/" >Publications</a>
+                
+            
+                
+            
+                
+            
+                
+            
+                
+            
+                
+            
+                
+            
+                
+            
+                
+            
+                
+            
+                
+            
+                
+            
+                
+            
+                
+            
+                
+            
+        </div>
+        
+    
+
+    <p class="about-me">I lead Customer Success at Solo.io. I enjoy hacking tech, and writing about it.</p>
+
+    <ul class="socials">
+        <li><a href="http://twitter.com/scottcranton"><svg title="twitter" width="16" height="16" ><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://scott.cranton.com/assets/svg/social-icons.svg#twitter-icon"></use></svg></a></li><li><a href="https://www.linkedin.com/in/scottcranton/"><svg title="linkedin" width="16" height="16" ><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://scott.cranton.com/assets/svg/social-icons.svg#linkedin-icon"></use></svg></a></li><li><a href="https://github.com/scranton"><svg title="github" width="16" height="16" ><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://scott.cranton.com/assets/svg/social-icons.svg#github-icon"></use></svg></a></li>
+
+        
+
+        
+         <li><a href="https://scott.cranton.com/feed.xml"><svg title="" width="16" height="16"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://scott.cranton.com/assets/svg/social-icons.svg#rss-icon"></use></svg></a></li>
+        
+    </ul>
+</aside>
+
+            <main class="the-content" role="main">
+                <div class="search" role="search">
+    <div>
+        <div class="show-results-count">0 Results</div>
+        <div class="search-holder">
+            <input type="text" id="search-input" placeholder="search for..." />
+        </div>
+    </div>
+    <ul id="results-container" class="results-container"></ul>
+</div>
+
+
+                <article class="post single" role="article" itemscope itemtype="http://schema.org/BlogPosting">
+    <header class="post-header">
+        <ul>
+            <li><time datetime="2019-03-28T12:37:03-04:00" itemprop="datePublished">28 Mar, 2019</time></li>
+            
+        </ul>
+        <h2 itemprop="name headline">Kubernetes Ingress Control using Gloo</h2>
+    </header>
+
+    <div class="post-content">
+        <p>Kubernetes is great and makes it easier to create and manage highly distributed applications. A challenge then is how do you share your great Kubernetes hosted applications with the rest of the world. Many lean towards <a href="https://kubernetes.io/docs/concepts/services-networking/ingress/">Kubernetes Ingress</a> objects and this article will show you how to use the open source Solo.io <a href="https://gloo.solo.io">Gloo</a> to fill this need.</p>
+
+<p><a href="https://medium.com/solo-io/announcing-gloo-the-function-gateway-3f0860ef6600">Gloo is a function gateway</a> that gives users a number of benefits including sophisticated function level routing, and deep service discovery with introspection of OpenAPI (Swagger) definitions, gRPC reflection, Lambda discovery and more. Gloo can act as an Ingress Controller, that is, by routing Kubernetes external traffic to Kubernetes cluster hosted services based on the path routing rules defined in an Ingress Object. I’m a big believer in showing technology through examples, so let’s quickly run through an example to show you what’s possible.</p>
+
+<h1 id="prerequisites">Prerequisites</h1>
+
+<p>This example assumes your running on a local <a href="https://kubernetes.io/docs/setup/minikube/">minikube</a> instance, and that you also have <a href="https://kubernetes.io/docs/tasks/tools/install-kubectl/">kubectl</a> also running. You can run this same example on your favorite cloud provider managed Kubernetes cluster, you’d just need to make a few tweaks. You’ll also need <a href="https://gloo.solo.io">Gloo</a> installed. Let’s use <a href="https://brew.sh/">Homebrew</a> to set all of this up for us.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>brew update
+brew cask <span class="nb">install </span>minikube
+brew <span class="nb">install </span>kubectl glooctl curl
+
+minikube start
+kubectl config current-context
+glooctl <span class="nb">install </span>ingress
+</code></pre></div></div>
+
+<p>It will take a few minutes to download and install everything to your local machine, and get everything started. Assuming it all went well, the command (<code class="highlighter-rouge">kubectl</code>) should have returned <code class="highlighter-rouge">minikube</code> meaning that your local minikube cluster is running and your Kubernetes cluster config is correctly set up for minikube.</p>
+
+<p>One more thing before we dive into Ingress objects, let’s set up an example service deployed on Kubernetes that we can reference.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kubectl apply <span class="se">\</span>
+  <span class="nt">--filename</span> https://raw.githubusercontent.com/solo-io/gloo/master/example/petstore/petstore.yaml
+</code></pre></div></div>
+
+<h1 id="setting-up-an-ingress-to-our-example-petstore">Setting up an Ingress to our example Petstore</h1>
+
+<p>Let’s set up a basic Ingress object that routes all HTTP traffic to our petstore service. To make this a little more interesting and challenging, and who doesn’t like a good tech challenge, let’s also configure a host domain, which will require a little extra <code class="highlighter-rouge">curl</code> magic to call correctly on our local Kubernetes cluster. The following Ingress definition will route all requests to <code class="highlighter-rouge">http://gloo.example.com</code> to our petstore services listening on port 8080 within our cluster. The petstore service provides some REST functions listening on the query path <code class="highlighter-rouge">/api/pets</code> that will return JSON for the inventory of pets in our (small) store.</p>
+
+<p>If you are trying this example in a public cloud Kubernetes instance, you’ll most likely need to configure a Cloud Load Balancer. Make sure you configure that Load Balancer for the <code class="highlighter-rouge">service/ingress-proxy</code> running in the <code class="highlighter-rouge">gloo-system</code> namespace.</p>
+
+<p>The important details are:
+Annotation: <code class="highlighter-rouge">kubernetes.io/ingress.class: gloo</code> which is the standard way to mark an Ingress as handled by a specific Ingress controller, i.e., Gloo.
+Path wildcard <code class="highlighter-rouge">/.*</code> to indicate to route all traffic to our petstore service.</p>
+
+<div class="language-yaml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="s">cat &lt;&lt;EOF | kubectl apply --filename -</span>
+<span class="na">apiVersion</span><span class="pi">:</span> <span class="s">extensions/v1beta1</span>
+<span class="na">kind</span><span class="pi">:</span> <span class="s">Ingress</span>
+<span class="na">metadata</span><span class="pi">:</span>
+ <span class="na">name</span><span class="pi">:</span> <span class="s">petstore-ingress</span>
+ <span class="na">annotations</span><span class="pi">:</span>
+    <span class="s">kubernetes.io/ingress.class</span><span class="pi">:</span> <span class="s">gloo</span>
+<span class="na">spec</span><span class="pi">:</span>
+  <span class="na">rules</span><span class="pi">:</span>
+  <span class="pi">-</span> <span class="na">host</span><span class="pi">:</span> <span class="s">gloo.example.com</span>
+    <span class="na">http</span><span class="pi">:</span>
+      <span class="na">paths</span><span class="pi">:</span>
+      <span class="pi">-</span> <span class="na">path</span><span class="pi">:</span> <span class="s">/.*</span>
+        <span class="na">backend</span><span class="pi">:</span>
+          <span class="na">serviceName</span><span class="pi">:</span> <span class="s">petstore</span>
+          <span class="na">servicePort</span><span class="pi">:</span> <span class="s">8080</span>
+<span class="s">EOF</span>
+</code></pre></div></div>
+
+<p>We can validate that Kubernetes created our Ingress correctly by the following command</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kubectl get ingress petstore-ingress
+
+NAME               HOSTS              ADDRESS   PORTS   AGE
+petstore-ingress   gloo.example.com             80      14h
+</code></pre></div></div>
+
+<p>To test we’ll use <code class="highlighter-rouge">curl</code> to call our local cluster. Like I said earlier, by defining a <code class="highlighter-rouge">host: gloo.example.com</code> in our Ingress, we need to do a little more to call this without doing things with DNS or our local /etc/hosts file. I’m going to use the recent <code class="highlighter-rouge">curl --connect-to</code> options, and you can read more about that at the <a href="https://curl.haxx.se/docs/manpage.html#--connect-to">curl man pages</a>.</p>
+
+<p>The glooctl command-line tool helps us get the local host IP and port for the proxy with the <code class="highlighter-rouge">glooctl proxy url --name &lt;ingress name&gt;</code> command. It returns a full URL with protocol prefix that we’ll need to strip off to use with curl. The following two commands will do a little bit of command line magic to make this example work on your local machine.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">export </span><span class="nv">PROXY_HOST_PORT</span><span class="o">=</span><span class="k">$(</span>glooctl proxy url <span class="nt">--name</span> ingress-proxy <span class="nt">--port</span> http | <span class="nb">sed</span> <span class="nt">-n</span> <span class="nt">-e</span> <span class="s1">'s/^.*:\/\///p'</span><span class="k">)</span>
+
+curl <span class="nt">--connect-to</span> gloo.example.com:80:<span class="k">${</span><span class="nv">PROXY_HOST_PORT</span><span class="k">}</span> http://gloo.example.com/api/pets
+</code></pre></div></div>
+
+<p>Which should return the following JSON</p>
+
+<div class="language-json highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">[{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span><span class="s2">"name"</span><span class="p">:</span><span class="s2">"Dog"</span><span class="p">,</span><span class="s2">"status"</span><span class="p">:</span><span class="s2">"available"</span><span class="p">},{</span><span class="s2">"id"</span><span class="p">:</span><span class="mi">2</span><span class="p">,</span><span class="s2">"name"</span><span class="p">:</span><span class="s2">"Cat"</span><span class="p">,</span><span class="s2">"status"</span><span class="p">:</span><span class="s2">"pending"</span><span class="p">}]</span><span class="w">
+</span></code></pre></div></div>
+
+<h1 id="tls-configuration">TLS Configuration</h1>
+
+<p>These days, most want to use TLS to secure your communications. Gloo Ingress can act as a TLS terminator, and we’ll quickly run through what that set up would look like.</p>
+
+<p>Any Kubernetes Ingress doing TLS will need a Kubernetes TLS secret created, so let’s create a self-signed certificate we can use for our example <code class="highlighter-rouge">gloo.example.com</code> domain. The following two commands will create a certificate, and create a TLS secret named <code class="highlighter-rouge">my-tls-secret</code> in minikube.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>openssl req <span class="nt">-x509</span> <span class="nt">-nodes</span> <span class="nt">-days</span> 365 <span class="nt">-newkey</span> rsa:2048 <span class="nt">-keyout</span> my_key.key <span class="nt">-out</span> my_cert.cert <span class="nt">-subj</span> <span class="s2">"/CN=gloo.example.com/O=gloo.example.com"</span>
+
+kubectl create secret tls my-tls-secret <span class="nt">--key</span> my_key.key <span class="nt">--cert</span> my_cert.cert
+</code></pre></div></div>
+
+<p>Now let’s update our Ingress object with the needed TLS configuration. Important that the TLS host and the rules host match, and the <code class="highlighter-rouge">secretName</code> matches the name of the Kubernetes secret deployed previously.</p>
+
+<div class="language-yaml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="s">cat &lt;&lt;EOF | kubectl apply --filename -</span>
+<span class="na">apiVersion</span><span class="pi">:</span> <span class="s">extensions/v1beta1</span>
+<span class="na">kind</span><span class="pi">:</span> <span class="s">Ingress</span>
+<span class="na">metadata</span><span class="pi">:</span>
+  <span class="na">name</span><span class="pi">:</span> <span class="s">petstore-ingress</span>
+  <span class="na">annotations</span><span class="pi">:</span>
+    <span class="s">kubernetes.io/ingress.class</span><span class="pi">:</span> <span class="s">gloo</span>
+<span class="na">spec</span><span class="pi">:</span>
+  <span class="na">tls</span><span class="pi">:</span>
+  <span class="pi">-</span> <span class="na">hosts</span><span class="pi">:</span>
+    <span class="pi">-</span> <span class="s">gloo.example.com</span>
+    <span class="na">secretName</span><span class="pi">:</span> <span class="s">my-tls-secret</span>
+  <span class="na">rules</span><span class="pi">:</span>
+  <span class="pi">-</span> <span class="na">host</span><span class="pi">:</span> <span class="s">gloo.example.com</span>
+    <span class="na">http</span><span class="pi">:</span>
+      <span class="na">paths</span><span class="pi">:</span>
+      <span class="pi">-</span> <span class="na">path</span><span class="pi">:</span> <span class="s">/.*</span>
+        <span class="na">backend</span><span class="pi">:</span>
+          <span class="na">serviceName</span><span class="pi">:</span> <span class="s">petstore</span>
+          <span class="na">servicePort</span><span class="pi">:</span> <span class="s">8080</span>
+<span class="s">EOF</span>
+</code></pre></div></div>
+
+<p>If all went well we should have changed our petstore to now be listening to <code class="highlighter-rouge">https://gloo.example.com</code>. Let’s try it, again using our curl magic, which we need to both resolve the host and port as well as to validate our certificate. Notice that we’re asking glooctl for <code class="highlighter-rouge">--port https</code> this time, and we’re curling <code class="highlighter-rouge">https://gloo.example.com</code> on port 443.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">export </span><span class="nv">PROXY_HOST_PORT</span><span class="o">=</span><span class="k">$(</span>glooctl proxy url <span class="nt">--name</span> ingress-proxy <span class="nt">--port</span> https | <span class="nb">sed</span> <span class="nt">-n</span> <span class="nt">-e</span> <span class="s1">'s/^.*:\/\///p'</span><span class="k">)</span>
+
+curl <span class="nt">--cacert</span> my_cert.cert <span class="nt">--connect-to</span> gloo.example.com:443:<span class="k">${</span><span class="nv">PROXY_HOST_PORT</span><span class="k">}</span> https://gloo.example.com/api/pets
+</code></pre></div></div>
+
+<h1 id="next-steps">Next Steps</h1>
+
+<p>This was a quick tour of how Gloo can act as your Kubernetes Ingress controller making very minimal changes to your existing Kubernetes manifests. Please try it out and let us know what you think at our <a href="https://slack.solo.io/">community Slack channel</a>.</p>
+
+<p>If you’re interested in powering up you Gloo superpowers, try Gloo in gateway mode <code class="highlighter-rouge">glooctl install gateway</code>, which unlocks a set of Kubernetes CRDs (Custom Resources) that give you a more standard and powerful way of doing far more advanced traffic shifting, rate limiting, and more without the annotation smell in your Kubernetes cluster. Check out these other articles for more details on Gloo’s extra powers.</p>
+
+<ul>
+  <li><a href="/function-routing-with-gloo.html">Routing with Gloo Function Gateway</a></li>
+  <li><a href="/canary-deployments-with-solo.html">Canary Deployments with Gloo Function Gateway</a></li>
+  <li><a href="/canary-deployments-with-weighted-routes.html">Canary Deployments with Gloo Function Gateway using Weighted Destinations</a></li>
+</ul>
+
+    </div>
+
+    <footer class="post-footer">
+        <div class="share">Share
+            <ul class="social-networks">
+                <li class="share-facebook"><a href="https://www.facebook.com/sharer.php?s=100&p[title]=Kubernetes Ingress Control using Gloo&p[summary]=Setting up Gloo to be your Kubernetes Ingress controller&p[url]=https://scott.cranton.com/kubernetes-ingress-controlling-with-gloo.html" class="s_facebook" target="_blank" onclick="window.open(this.href, '','width=700,height=300');return false;"><svg title="" width="16" height="16"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://scott.cranton.com/assets/svg/social-icons.svg#facebook-icon"></use></svg></a></li>
+                <li class="share-twitter"><a href="http://twitter.com/share?url=https://scott.cranton.com/kubernetes-ingress-controlling-with-gloo.html&text=Setting up Gloo to be your Kubernetes Ingress controller&hashtags=Gloo,Ingress,Kubernetes," rel="noreferrer" target="_blank" onclick="window.open(this.href, '','width=700,height=300');return false;"><svg title="" width="16" height="16"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://scott.cranton.com/assets/svg/social-icons.svg#twitter-icon"></use></svg></a></li>
+            </ul>
+        </div>
+        
+        <div class="tags">
+            <ul>
+                
+                <li><a href="https://scott.cranton.com/tag/Gloo">Gloo</a></li>
+                
+                <li><a href="https://scott.cranton.com/tag/Ingress">Ingress</a></li>
+                
+                <li><a href="https://scott.cranton.com/tag/Kubernetes">Kubernetes</a></li>
+                
+            </ul>
+        </div>
+        
+    </footer>
+</article>
+
+
+<aside class="comments" role="complementary">
+    <div id="disqus_thread"></div>
+    <script>
+        var disqus_config = function () {
+            this.page.url = 'https://scott.cranton.com/kubernetes-ingress-controlling-with-gloo.html';
+            this.page.identifier = '3/28/2019';
+        };
+        (function() {
+            var d = document, s = d.createElement('script');
+
+            s.src = '//scott-cranton-blog.disqus.com/embed.js';
+
+            s.setAttribute('data-timestamp', +new Date());
+            (d.head || d.body).appendChild(s);
+        })();
+    </script>
+</aside>
+
+            </main>
+        </div>
+
+        <script src="https://scott.cranton.com/assets/js/jquery-1.12.2.min.js"></script>
+<script src="https://scott.cranton.com/assets/js/backtotop.js"></script>
+<script src="https://scott.cranton.com/assets/js/lunr.min.js"></script>
+<script src="https://scott.cranton.com/assets/js/lunr-feed.js"></script>
+<script src="https://scott.cranton.com/assets/js/jquery.fitvids.js"></script>
+<script src="https://scott.cranton.com/assets/js/svg4everybody.min.js"></script>
+<script src="https://scott.cranton.com/assets/js/scripts.js"></script>
+
+
+    <script>
+        (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+                    (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+                m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+        })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+        ga('create', 'UA-134627391-1', 'auto');
+        ga('send', 'pageview');
+    </script>
+
+    </body>
+</html>
