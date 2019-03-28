@@ -11,6 +11,8 @@ tags:
 
 Kubernetes is great and makes it easier to create and manage highly distributed applications. A challenge then is how do you share your great Kubernetes hosted applications with the rest of the world. Many lean towards [Kubernetes Ingress](https://kubernetes.io/docs/concepts/services-networking/ingress/) objects and this article will show you how to use the open source Solo.io [Gloo](https://gloo.solo.io) to fill this need.
 
+![Gloo as Ingress](/assets/gloo_as_ingress.png)
+
 [Gloo is a function gateway](https://medium.com/solo-io/announcing-gloo-the-function-gateway-3f0860ef6600) that gives users a number of benefits including sophisticated function level routing, and deep service discovery with introspection of OpenAPI (Swagger) definitions, gRPC reflection, Lambda discovery and more. Gloo can act as an Ingress Controller, that is, by routing Kubernetes external traffic to Kubernetes cluster hosted services based on the path routing rules defined in an Ingress Object. I’m a big believer in showing technology through examples, so let’s quickly run through an example to show you what's possible.
 
 # Prerequisites
@@ -43,8 +45,9 @@ Let’s set up a basic Ingress object that routes all HTTP traffic to our petsto
 If you are trying this example in a public cloud Kubernetes instance, you’ll most likely need to configure a Cloud Load Balancer. Make sure you configure that Load Balancer for the `service/ingress-proxy` running in the `gloo-system` namespace.
 
 The important details are:
-Annotation: `kubernetes.io/ingress.class: gloo` which is the standard way to mark an Ingress as handled by a specific Ingress controller, i.e., Gloo.
-Path wildcard `/.*` to indicate to route all traffic to our petstore service.
+
+* Annotation `kubernetes.io/ingress.class: gloo` which is the standard way to mark an Ingress as handled by a specific Ingress controller, i.e., Gloo. This requirement will go away soon as we add ability for Gloo to be the cluster default Ingress controller.
+* Path wildcard `/.*` to indicate to route all traffic to our petstore service.
 
 ```yaml
 cat <<EOF | kubectl apply --filename -
