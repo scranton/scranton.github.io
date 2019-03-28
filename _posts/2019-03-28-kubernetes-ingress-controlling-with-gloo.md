@@ -9,7 +9,7 @@ tags:
 - Kubernetes
 ---
 
-Kubernetes is great and makes it easier to create and manage highly distributed applications. A challenge then is how do you share your great Kubernetes hosted applications with the rest of the world. Many lean towards [Kubernetes Ingress](https://kubernetes.io/docs/concepts/services-networking/ingress/) objects and this article will show you how to use the open source Solo.io [Gloo](https://gloo.solo.io) to fill this need.
+Kubernetes is great and makes it easier to create and manage highly distributed applications. A challenge then is how do you share your great Kubernetes hosted applications with the rest of the world. Many lean towards [Kubernetes Ingress](https://kubernetes.io/docs/concepts/services-networking/ingress/) objects and this article will show you how to use the open source [Solo.io](https://solo.io) [Gloo](https://gloo.solo.io) to fill this need.
 
 ![Gloo as Ingress](/assets/gloo_as_ingress.png)
 
@@ -17,7 +17,7 @@ Kubernetes is great and makes it easier to create and manage highly distributed 
 
 # Prerequisites
 
-This example assumes your running on a local [minikube](https://kubernetes.io/docs/setup/minikube/) instance, and that you also have [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) also running. You can run this same example on your favorite cloud provider managed Kubernetes cluster, you’d just need to make a few tweaks. You’ll also need [Gloo](https://gloo.solo.io) installed. Let’s use [Homebrew](https://brew.sh/) to set all of this up for us.
+This example assumes you're running on a local [minikube](https://kubernetes.io/docs/setup/minikube/) instance, and that you also have [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) also running. You can run this same example on your favorite cloud provider managed Kubernetes cluster, you’d just need to make a few tweaks. You’ll also need [Gloo](https://gloo.solo.io) installed. Let’s use [Homebrew](https://brew.sh/) to set all of this up for us.
 
 ```shell
 brew update
