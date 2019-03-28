@@ -5,13 +5,13 @@
     <description>I lead Customer Success at Solo.io. I enjoy hacking tech, and writing about it.</description>
     <link>https://scott.cranton.com/</link>
     <atom:link href="https://scott.cranton.com/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Thu, 28 Mar 2019 14:26:45 -0400</pubDate>
-    <lastBuildDate>Thu, 28 Mar 2019 14:26:45 -0400</lastBuildDate>
+    <pubDate>Thu, 28 Mar 2019 15:22:22 -0400</pubDate>
+    <lastBuildDate>Thu, 28 Mar 2019 15:22:22 -0400</lastBuildDate>
     <generator>Jekyll v3.8.4</generator>
     
       <item>
         <title>Kubernetes Ingress Control using Gloo</title>
-        <description>&lt;p&gt;Kubernetes is great and makes it easier to create and manage highly distributed applications. A challenge then is how do you share your great Kubernetes hosted applications with the rest of the world. Many lean towards &lt;a href=&quot;https://kubernetes.io/docs/concepts/services-networking/ingress/&quot;&gt;Kubernetes Ingress&lt;/a&gt; objects and this article will show you how to use the open source Solo.io &lt;a href=&quot;https://gloo.solo.io&quot;&gt;Gloo&lt;/a&gt; to fill this need.&lt;/p&gt;
+        <description>&lt;p&gt;Kubernetes is great and makes it easier to create and manage highly distributed applications. A challenge then is how do you share your great Kubernetes hosted applications with the rest of the world. Many lean towards &lt;a href=&quot;https://kubernetes.io/docs/concepts/services-networking/ingress/&quot;&gt;Kubernetes Ingress&lt;/a&gt; objects and this article will show you how to use the open source &lt;a href=&quot;https://solo.io&quot;&gt;Solo.io&lt;/a&gt; &lt;a href=&quot;https://gloo.solo.io&quot;&gt;Gloo&lt;/a&gt; to fill this need.&lt;/p&gt;
 
 &lt;p&gt;&lt;img src=&quot;/assets/gloo_as_ingress.png&quot; alt=&quot;Gloo as Ingress&quot; /&gt;&lt;/p&gt;
 
@@ -19,7 +19,7 @@
 
 &lt;h1 id=&quot;prerequisites&quot;&gt;Prerequisites&lt;/h1&gt;
 
-&lt;p&gt;This example assumes your running on a local &lt;a href=&quot;https://kubernetes.io/docs/setup/minikube/&quot;&gt;minikube&lt;/a&gt; instance, and that you also have &lt;a href=&quot;https://kubernetes.io/docs/tasks/tools/install-kubectl/&quot;&gt;kubectl&lt;/a&gt; also running. You can run this same example on your favorite cloud provider managed Kubernetes cluster, you’d just need to make a few tweaks. You’ll also need &lt;a href=&quot;https://gloo.solo.io&quot;&gt;Gloo&lt;/a&gt; installed. Let’s use &lt;a href=&quot;https://brew.sh/&quot;&gt;Homebrew&lt;/a&gt; to set all of this up for us.&lt;/p&gt;
+&lt;p&gt;This example assumes you’re running on a local &lt;a href=&quot;https://kubernetes.io/docs/setup/minikube/&quot;&gt;minikube&lt;/a&gt; instance, and that you also have &lt;a href=&quot;https://kubernetes.io/docs/tasks/tools/install-kubectl/&quot;&gt;kubectl&lt;/a&gt; also running. You can run this same example on your favorite cloud provider managed Kubernetes cluster, you’d just need to make a few tweaks. You’ll also need &lt;a href=&quot;https://gloo.solo.io&quot;&gt;Gloo&lt;/a&gt; installed. Let’s use &lt;a href=&quot;https://brew.sh/&quot;&gt;Homebrew&lt;/a&gt; to set all of this up for us.&lt;/p&gt;
 
 &lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;brew update
 brew cask &lt;span class=&quot;nb&quot;&gt;install &lt;/span&gt;minikube

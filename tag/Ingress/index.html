@@ -212,7 +212,7 @@
             </header>
 
             <div class="post-content">
-                <p>Kubernetes is great and makes it easier to create and manage highly distributed applications. A challenge then is how do you share your great Kubernetes hosted applications with the rest of the world. Many lean towards <a href="https://kubernetes.io/docs/concepts/services-networking/ingress/">Kubernetes Ingress</a> objects and this article will show you how to use the open source Solo.io <a href="https://gloo.solo.io">Gloo</a> to fill this need.</p>
+                <p>Kubernetes is great and makes it easier to create and manage highly distributed applications. A challenge then is how do you share your great Kubernetes hosted applications with the rest of the world. Many lean towards <a href="https://kubernetes.io/docs/concepts/services-networking/ingress/">Kubernetes Ingress</a> objects and this article will show you how to use the open source <a href="https://solo.io">Solo.io</a> <a href="https://gloo.solo.io">Gloo</a> to fill this need.</p>
 
 <p><img src="/assets/gloo_as_ingress.png" alt="Gloo as Ingress" /></p>
 
@@ -220,7 +220,7 @@
 
 <h1 id="prerequisites">Prerequisites</h1>
 
-<p>This example assumes your running on a local <a href="https://kubernetes.io/docs/setup/minikube/">minikube</a> instance, and that you also have <a href="https://kubernetes.io/docs/tasks/tools/install-kubectl/">kubectl</a> also running. You can run this same example on your favorite cloud provider managed Kubernetes cluster, you’d just need to make a few tweaks. You’ll also need <a href="https://gloo.solo.io">Gloo</a> installed. Let’s use <a href="https://brew.sh/">Homebrew</a> to set all of this up for us.</p>
+<p>This example assumes you’re running on a local <a href="https://kubernetes.io/docs/setup/minikube/">minikube</a> instance, and that you also have <a href="https://kubernetes.io/docs/tasks/tools/install-kubectl/">kubectl</a> also running. You can run this same example on your favorite cloud provider managed Kubernetes cluster, you’d just need to make a few tweaks. You’ll also need <a href="https://gloo.solo.io">Gloo</a> installed. Let’s use <a href="https://brew.sh/">Homebrew</a> to set all of this up for us.</p>
 
 <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>brew update
 brew cask <span class="nb">install </span>minikube
