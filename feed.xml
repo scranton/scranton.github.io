@@ -5,13 +5,15 @@
     <description>I lead Customer Success at Solo.io. I enjoy hacking tech, and writing about it.</description>
     <link>https://scott.cranton.com/</link>
     <atom:link href="https://scott.cranton.com/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Thu, 28 Mar 2019 12:47:22 -0400</pubDate>
-    <lastBuildDate>Thu, 28 Mar 2019 12:47:22 -0400</lastBuildDate>
+    <pubDate>Thu, 28 Mar 2019 14:24:20 -0400</pubDate>
+    <lastBuildDate>Thu, 28 Mar 2019 14:24:20 -0400</lastBuildDate>
     <generator>Jekyll v3.8.4</generator>
     
       <item>
         <title>Kubernetes Ingress Control using Gloo</title>
         <description>&lt;p&gt;Kubernetes is great and makes it easier to create and manage highly distributed applications. A challenge then is how do you share your great Kubernetes hosted applications with the rest of the world. Many lean towards &lt;a href=&quot;https://kubernetes.io/docs/concepts/services-networking/ingress/&quot;&gt;Kubernetes Ingress&lt;/a&gt; objects and this article will show you how to use the open source Solo.io &lt;a href=&quot;https://gloo.solo.io&quot;&gt;Gloo&lt;/a&gt; to fill this need.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/gloo_as_ingress.png&quot; alt=&quot;Gloo as Ingress&quot; /&gt;&lt;/p&gt;
 
 &lt;p&gt;&lt;a href=&quot;https://medium.com/solo-io/announcing-gloo-the-function-gateway-3f0860ef6600&quot;&gt;Gloo is a function gateway&lt;/a&gt; that gives users a number of benefits including sophisticated function level routing, and deep service discovery with introspection of OpenAPI (Swagger) definitions, gRPC reflection, Lambda discovery and more. Gloo can act as an Ingress Controller, that is, by routing Kubernetes external traffic to Kubernetes cluster hosted services based on the path routing rules defined in an Ingress Object. I’m a big believer in showing technology through examples, so let’s quickly run through an example to show you what’s possible.&lt;/p&gt;
 
@@ -42,9 +44,12 @@ glooctl &lt;span class=&quot;nb&quot;&gt;install &lt;/span&gt;ingress
 
 &lt;p&gt;If you are trying this example in a public cloud Kubernetes instance, you’ll most likely need to configure a Cloud Load Balancer. Make sure you configure that Load Balancer for the &lt;code class=&quot;highlighter-rouge&quot;&gt;service/ingress-proxy&lt;/code&gt; running in the &lt;code class=&quot;highlighter-rouge&quot;&gt;gloo-system&lt;/code&gt; namespace.&lt;/p&gt;
 
-&lt;p&gt;The important details are:
-Annotation: &lt;code class=&quot;highlighter-rouge&quot;&gt;kubernetes.io/ingress.class: gloo&lt;/code&gt; which is the standard way to mark an Ingress as handled by a specific Ingress controller, i.e., Gloo.
-Path wildcard &lt;code class=&quot;highlighter-rouge&quot;&gt;/.*&lt;/code&gt; to indicate to route all traffic to our petstore service.&lt;/p&gt;
+&lt;p&gt;The important details are:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;Annotation &lt;code class=&quot;highlighter-rouge&quot;&gt;kubernetes.io/ingress.class: gloo&lt;/code&gt; which is the standard way to mark an Ingress as handled by a specific Ingress controller, i.e., Gloo. This requirement will go away soon as we add ability for Gloo to be the cluster default Ingress controller.&lt;/li&gt;
+  &lt;li&gt;Path wildcard &lt;code class=&quot;highlighter-rouge&quot;&gt;/.*&lt;/code&gt; to indicate to route all traffic to our petstore service.&lt;/li&gt;
+&lt;/ul&gt;
 
 &lt;div class=&quot;language-yaml highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;s&quot;&gt;cat &amp;lt;&amp;lt;EOF | kubectl apply --filename -&lt;/span&gt;
 &lt;span class=&quot;na&quot;&gt;apiVersion&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;extensions/v1beta1&lt;/span&gt;

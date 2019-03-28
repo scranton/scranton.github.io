@@ -212,6 +212,8 @@
             <div class="post-content">
                 <p>Kubernetes is great and makes it easier to create and manage highly distributed applications. A challenge then is how do you share your great Kubernetes hosted applications with the rest of the world. Many lean towards <a href="https://kubernetes.io/docs/concepts/services-networking/ingress/">Kubernetes Ingress</a> objects and this article will show you how to use the open source Solo.io <a href="https://gloo.solo.io">Gloo</a> to fill this need.</p>
 
+<p><img src="/assets/gloo_as_ingress.png" alt="Gloo as Ingress" /></p>
+
 <p><a href="https://medium.com/solo-io/announcing-gloo-the-function-gateway-3f0860ef6600">Gloo is a function gateway</a> that gives users a number of benefits including sophisticated function level routing, and deep service discovery with introspection of OpenAPI (Swagger) definitions, gRPC reflection, Lambda discovery and more. Gloo can act as an Ingress Controller, that is, by routing Kubernetes external traffic to Kubernetes cluster hosted services based on the path routing rules defined in an Ingress Object. I’m a big believer in showing technology through examples, so let’s quickly run through an example to show you what’s possible.</p>
 
 <h1 id="prerequisites">Prerequisites</h1>
@@ -241,9 +243,12 @@ glooctl <span class="nb">install </span>ingress
 
 <p>If you are trying this example in a public cloud Kubernetes instance, you’ll most likely need to configure a Cloud Load Balancer. Make sure you configure that Load Balancer for the <code class="highlighter-rouge">service/ingress-proxy</code> running in the <code class="highlighter-rouge">gloo-system</code> namespace.</p>
 
-<p>The important details are:
-Annotation: <code class="highlighter-rouge">kubernetes.io/ingress.class: gloo</code> which is the standard way to mark an Ingress as handled by a specific Ingress controller, i.e., Gloo.
-Path wildcard <code class="highlighter-rouge">/.*</code> to indicate to route all traffic to our petstore service.</p>
+<p>The important details are:</p>
+
+<ul>
+  <li>Annotation <code class="highlighter-rouge">kubernetes.io/ingress.class: gloo</code> which is the standard way to mark an Ingress as handled by a specific Ingress controller, i.e., Gloo. This requirement will go away soon as we add ability for Gloo to be the cluster default Ingress controller.</li>
+  <li>Path wildcard <code class="highlighter-rouge">/.*</code> to indicate to route all traffic to our petstore service.</li>
+</ul>
 
 <div class="language-yaml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="s">cat &lt;&lt;EOF | kubectl apply --filename -</span>
 <span class="na">apiVersion</span><span class="pi">:</span> <span class="s">extensions/v1beta1</span>
