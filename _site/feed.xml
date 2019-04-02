@@ -5,9 +5,262 @@
     <description>I lead Customer Success at Solo.io. I enjoy hacking tech, and writing about it.</description>
     <link>https://scott.cranton.com/</link>
     <atom:link href="https://scott.cranton.com/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Fri, 29 Mar 2019 10:24:51 -0400</pubDate>
-    <lastBuildDate>Fri, 29 Mar 2019 10:24:51 -0400</lastBuildDate>
+    <pubDate>Tue, 02 Apr 2019 16:22:00 -0400</pubDate>
+    <lastBuildDate>Tue, 02 Apr 2019 16:22:00 -0400</lastBuildDate>
     <generator>Jekyll v3.8.4</generator>
+    
+      <item>
+        <title>Automating your Services with Knative and Solo.io Gloo</title>
+        <description>&lt;p&gt;&lt;a href=&quot;https://github.com/knative/&quot;&gt;Knative&lt;/a&gt; is talked about a great deal, especially around how its capabilities can
+help provide more standard building blocks on top of Kubernetes for building microservices and serverless like services,
+e.g., scale to zero, and scale on demand. Knative high level has three capability areas: building, serving, and eventing.
+This post will provide some examples around Knative Build and Knative Serving with Solo.io Gloo.&lt;/p&gt;
+
+&lt;p&gt;Knative Serving initially included all of Istio only to use a small fraction of its capabilities around being a
+Kubernetes cluster ingress. Recently the Knative team added &lt;a href=&quot;https://solo.io&quot;&gt;Solo.io&lt;/a&gt; &lt;a href=&quot;https://gloo.solo.io&quot;&gt;Gloo&lt;/a&gt; as
+an alternative to Istio. More details are available in &lt;a href=&quot;https://medium.com/solo-io/gloo-knative-and-the-future-of-serverless-902b89f15c2c&quot;&gt;Gloo, Knative and the future of Serverless&lt;/a&gt;
+and &lt;a href=&quot;https://medium.com/solo-io/gloo-by-solo-io-is-the-first-alternative-to-istio-on-knative-324753586f3a&quot;&gt;Gloo, by Solo.io, is the first alternative to Istio on Knative&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;This post shows a quick example of Knative Building, Knative Serving, and Gloo integration.&lt;/p&gt;
+
+&lt;p&gt;All of the Kubernetes Manifests are located in the following GitHub repository
+&lt;a href=&quot;https://github.com/scranton/helloworld-knative&quot;&gt;https://github.com/scranton/helloworld-knative&lt;/a&gt;. I encourage you to fork that repository to help you try these examples
+yourself.&lt;/p&gt;
+
+&lt;h1 id=&quot;setup&quot;&gt;Setup&lt;/h1&gt;
+
+&lt;p&gt;These instructions assume you are running on a clean, recent &lt;a href=&quot;https://kubernetes.io/docs/setup/minikube/&quot;&gt;minikube&lt;/a&gt;
+install locally, and that you also have &lt;code class=&quot;highlighter-rouge&quot;&gt;kubectl&lt;/code&gt; available locally.&lt;/p&gt;
+
+&lt;h2 id=&quot;install-gloo&quot;&gt;Install Gloo&lt;/h2&gt;
+
+&lt;p&gt;On Mac or Linux, the quickest option is to use &lt;a href=&quot;https://bash.sh/&quot;&gt;Homebrew&lt;/a&gt;. Full Gloo
+install instructions at &lt;a href=&quot;https://gloo.solo.io/installation/install_glooctl/&quot;&gt;Gloo documentation&lt;/a&gt;.&lt;/p&gt;
+
+&lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;brew &lt;span class=&quot;nb&quot;&gt;install &lt;/span&gt;glooctl
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Then assuming you’ve got a running &lt;code class=&quot;highlighter-rouge&quot;&gt;minikube&lt;/code&gt;, and &lt;code class=&quot;highlighter-rouge&quot;&gt;kubectl&lt;/code&gt; set up against that &lt;code class=&quot;highlighter-rouge&quot;&gt;minikube&lt;/code&gt; instance, i.e., &lt;code class=&quot;highlighter-rouge&quot;&gt;kubectl
+config current-context&lt;/code&gt; returns &lt;code class=&quot;highlighter-rouge&quot;&gt;minikube&lt;/code&gt;, run the following to install Gloo with Knative Serving.&lt;/p&gt;
+
+&lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;glooctl &lt;span class=&quot;nb&quot;&gt;install &lt;/span&gt;knative
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h1 id=&quot;deploy-existing-exampleimage&quot;&gt;Deploy existing example image&lt;/h1&gt;
+
+&lt;p&gt;I’ve already built this example, and have hosted the image publicly in my &lt;a href=&quot;https://hub.docker.com/r/scottcranton/helloworld-go&quot;&gt;Docker Hub repository&lt;/a&gt;.
+To use Knative to serve up this existing image, you need to do the following command.&lt;/p&gt;
+
+&lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kubectl apply &lt;span class=&quot;nt&quot;&gt;--filename&lt;/span&gt; service.yaml
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Verify the domain URL for the service. It should be &lt;code class=&quot;highlighter-rouge&quot;&gt;helloworld-go.default.example.com&lt;/code&gt;.&lt;/p&gt;
+
+&lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kubectl get kservice helloworld-go &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+  &lt;span class=&quot;nt&quot;&gt;--namespace&lt;/span&gt; default &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+  &lt;span class=&quot;nt&quot;&gt;--output&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;custom-columns&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;NAME:.metadata.name,DOMAIN:.status.domain
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;And call the service. Note: the &lt;code class=&quot;highlighter-rouge&quot;&gt;curl --connect-to&lt;/code&gt; option is only required when calling locally against minikube as
+that option will add the correct host and sni headers to the request, and send the request to the host and port pair
+returned from &lt;code class=&quot;highlighter-rouge&quot;&gt;glooctl proxy address&lt;/code&gt;.&lt;/p&gt;
+
+&lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;curl &lt;span class=&quot;nt&quot;&gt;--connect-to&lt;/span&gt; helloworld-go.default.example.com:80:&lt;span class=&quot;k&quot;&gt;$(&lt;/span&gt;glooctl proxy address &lt;span class=&quot;nt&quot;&gt;--name&lt;/span&gt; clusteringress-proxy&lt;span class=&quot;k&quot;&gt;)&lt;/span&gt; http://helloworld-go.default.example.com
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;To clean up, delete the resources.&lt;/p&gt;
+
+&lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kubectl delete &lt;span class=&quot;nt&quot;&gt;--filename&lt;/span&gt; service.yaml
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h1 id=&quot;build-locally-and-deploy-using-knativeserving&quot;&gt;Build locally, and deploy using Knative Serving&lt;/h1&gt;
+
+&lt;p&gt;Run &lt;code class=&quot;highlighter-rouge&quot;&gt;docker build&lt;/code&gt; with your Docker Hub username.&lt;/p&gt;
+
+&lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;docker build &lt;span class=&quot;nt&quot;&gt;-t&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;${&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;DOCKER_USERNAME&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;}&lt;/span&gt;/helloworld-go &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt;
+docker push &lt;span class=&quot;k&quot;&gt;${&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;DOCKER_USERNAME&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;}&lt;/span&gt;/helloworld-go
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Deploy the service. Again, make sure you updated username in &lt;code class=&quot;highlighter-rouge&quot;&gt;service.yaml&lt;/code&gt; file, i.e., replace image reference
+&lt;code class=&quot;highlighter-rouge&quot;&gt;docker.io/scottcranton/helloworld-go&lt;/code&gt; with your Docker Hub username.&lt;/p&gt;
+
+&lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kubectl apply &lt;span class=&quot;nt&quot;&gt;--filename&lt;/span&gt; service.yaml
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Verify domain URL for service. Should be &lt;code class=&quot;highlighter-rouge&quot;&gt;helloworld-go.default.example.com&lt;/code&gt;.&lt;/p&gt;
+
+&lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kubectl get kservice helloworld-go &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+  &lt;span class=&quot;nt&quot;&gt;--namespace&lt;/span&gt; default &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+  &lt;span class=&quot;nt&quot;&gt;--output&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;custom-columns&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;NAME:.metadata.name,DOMAIN:.status.domain
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;And test your service.&lt;/p&gt;
+
+&lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;curl &lt;span class=&quot;nt&quot;&gt;--connect-to&lt;/span&gt; helloworld-go.default.example.com:80:&lt;span class=&quot;k&quot;&gt;$(&lt;/span&gt;glooctl proxy address &lt;span class=&quot;nt&quot;&gt;--name&lt;/span&gt; clusteringress-proxy&lt;span class=&quot;k&quot;&gt;)&lt;/span&gt; http://helloworld-go.default.example.com
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;To clean up, delete the resources.&lt;/p&gt;
+
+&lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kubectl delete &lt;span class=&quot;nt&quot;&gt;--filename&lt;/span&gt; service.yaml
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h1 id=&quot;build-using-knative-build-and-deploy-using-knativeserving&quot;&gt;Build using Knative Build, and deploy using Knative Serving&lt;/h1&gt;
+
+&lt;p&gt;To install Knative Build, do the following. I’m using the &lt;code class=&quot;highlighter-rouge&quot;&gt;kaniko&lt;/code&gt; build template, so you’ll also need to install that
+as well.&lt;/p&gt;
+
+&lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kubectl apply &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+  &lt;span class=&quot;nt&quot;&gt;--filename&lt;/span&gt; https://github.com/knative/build/releases/download/v0.4.0/build.yaml
+
+kubectl apply &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+  &lt;span class=&quot;nt&quot;&gt;--filename&lt;/span&gt; https://raw.githubusercontent.com/knative/build-templates/master/kaniko/kaniko.yaml
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;To verify the Knative Build install, do the following.&lt;/p&gt;
+
+&lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kubectl get pods &lt;span class=&quot;nt&quot;&gt;--namespace&lt;/span&gt; knative-build
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;I’d encourage forking my example GitHub repository &lt;a href=&quot;https://github.com/scranton/helloworld-knative&quot;&gt;https://github.com/scranton/helloworld-knative&lt;/a&gt;, so you can push
+code changes and see them in your environment.&lt;/p&gt;
+
+&lt;p&gt;Create a Kubernetes secret for your Docker Hub account that will allow Knative build to push your image. You also need to annotate the secret to indicate it’s for Docker. More details in &lt;a href=&quot;https://www.knative.dev/docs/build/auth/#guiding-credential-selection&quot;&gt;Guiding credential selection&lt;/a&gt;.&lt;/p&gt;
+
+&lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kubectl create secret generic basic-user-pass &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+  &lt;span class=&quot;nt&quot;&gt;--type&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;kubernetes.io/basic-auth&quot;&lt;/span&gt; &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+  &lt;span class=&quot;nt&quot;&gt;--from-literal&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;username&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;${&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;DOCKER_USERNAME&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+  &lt;span class=&quot;nt&quot;&gt;--from-literal&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;password&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;${&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;DOCKER_PASSWORD&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;}&lt;/span&gt;
+
+kubectl annotate secret basic-user-pass &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+  build.knative.dev/docker-0&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;https://index.docker.io/v1/
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;It should result in a secret like the following.&lt;/p&gt;
+
+&lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kubectl describe secret basic-user-pass
+
+Name:         basic-user-pass
+Namespace:    default
+Labels:       &amp;lt;none&amp;gt;
+Annotations:  build.knative.dev/docker-0: https://index.docker.io/v1/
+
+Type:  kubernetes.io/basic-auth
+
+Data
+&lt;span class=&quot;o&quot;&gt;====&lt;/span&gt;
+username:  12 bytes
+password:  24 bytes
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Verify that &lt;code class=&quot;highlighter-rouge&quot;&gt;serviceaccount.yaml&lt;/code&gt; references your secret.&lt;/p&gt;
+
+&lt;div class=&quot;language-yaml highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;na&quot;&gt;apiVersion&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;v1&lt;/span&gt;
+&lt;span class=&quot;na&quot;&gt;kind&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;ServiceAccount&lt;/span&gt;
+&lt;span class=&quot;na&quot;&gt;metadata&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+  &lt;span class=&quot;na&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;build-bot&lt;/span&gt;
+&lt;span class=&quot;na&quot;&gt;secrets&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+  &lt;span class=&quot;pi&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;na&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;basic-user-pass&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Update &lt;code class=&quot;highlighter-rouge&quot;&gt;service-build.yaml&lt;/code&gt; with your GitHub and Docker usernames. This manifest will use Knative Build to create an
+image using the &lt;code class=&quot;highlighter-rouge&quot;&gt;kaniko-build&lt;/code&gt; build template and deploy the service using Knative Serving with Gloo.&lt;/p&gt;
+
+&lt;div class=&quot;language-yaml highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;na&quot;&gt;apiVersion&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;serving.knative.dev/v1alpha1&lt;/span&gt;
+&lt;span class=&quot;na&quot;&gt;kind&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;Service&lt;/span&gt;
+&lt;span class=&quot;na&quot;&gt;metadata&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+  &lt;span class=&quot;na&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;helloworld-go&lt;/span&gt;
+  &lt;span class=&quot;na&quot;&gt;namespace&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;default&lt;/span&gt;
+&lt;span class=&quot;na&quot;&gt;spec&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+  &lt;span class=&quot;na&quot;&gt;runLatest&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;na&quot;&gt;configuration&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+      &lt;span class=&quot;na&quot;&gt;build&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+        &lt;span class=&quot;na&quot;&gt;apiVersion&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;build.knative.dev/v1alpha1&lt;/span&gt;
+        &lt;span class=&quot;na&quot;&gt;kind&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;Build&lt;/span&gt;
+        &lt;span class=&quot;na&quot;&gt;metadata&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+          &lt;span class=&quot;na&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;kaniko-build&lt;/span&gt;
+        &lt;span class=&quot;na&quot;&gt;spec&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+          &lt;span class=&quot;na&quot;&gt;serviceAccountName&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;build-bot&lt;/span&gt;
+          &lt;span class=&quot;na&quot;&gt;source&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+            &lt;span class=&quot;na&quot;&gt;git&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+              &lt;span class=&quot;na&quot;&gt;url&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;https://github.com/{ GitHub username }/helloworld-knative&lt;/span&gt;
+              &lt;span class=&quot;na&quot;&gt;revision&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;master&lt;/span&gt;
+          &lt;span class=&quot;na&quot;&gt;template&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+            &lt;span class=&quot;na&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;kaniko&lt;/span&gt;
+            &lt;span class=&quot;na&quot;&gt;arguments&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+              &lt;span class=&quot;pi&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;na&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;IMAGE&lt;/span&gt;
+                &lt;span class=&quot;na&quot;&gt;value&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;docker.io/{ Docker Hub username }/helloworld-go&lt;/span&gt;
+          &lt;span class=&quot;na&quot;&gt;timeout&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;10m&lt;/span&gt;
+      &lt;span class=&quot;na&quot;&gt;revisionTemplate&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+        &lt;span class=&quot;na&quot;&gt;spec&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+          &lt;span class=&quot;na&quot;&gt;container&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+            &lt;span class=&quot;na&quot;&gt;image&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;docker.io/{ Docker Hub username }/helloworld-go&lt;/span&gt;
+            &lt;span class=&quot;na&quot;&gt;imagePullPolicy&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;Always&lt;/span&gt;
+            &lt;span class=&quot;na&quot;&gt;env&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
+              &lt;span class=&quot;pi&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;na&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;TARGET&lt;/span&gt;
+                &lt;span class=&quot;na&quot;&gt;value&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;Go&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s&quot;&gt;Sample&lt;/span&gt;&lt;span class=&quot;nv&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s&quot;&gt;v1&quot;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;To deploy, apply the manifests.&lt;/p&gt;
+
+&lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kubectl apply &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+  &lt;span class=&quot;nt&quot;&gt;--filename&lt;/span&gt; serviceaccount.yaml &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+  &lt;span class=&quot;nt&quot;&gt;--filename&lt;/span&gt; service-build.yaml
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Then you can watch the build and deployment happening.&lt;/p&gt;
+
+&lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kubectl get pods &lt;span class=&quot;nt&quot;&gt;--watch&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Once you see all the &lt;code class=&quot;highlighter-rouge&quot;&gt;helloworld-go-0000x-deployment-....&lt;/code&gt; pods are ready, then you can Ctrl+C to escape the watch, and
+then test your deployment.&lt;/p&gt;
+
+&lt;p&gt;Verify the domain URL for service. Should be &lt;code class=&quot;highlighter-rouge&quot;&gt;helloworld-go.default.example.com&lt;/code&gt;.&lt;/p&gt;
+
+&lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kubectl get kservice helloworld-go &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+  &lt;span class=&quot;nt&quot;&gt;--namespace&lt;/span&gt; default &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+  &lt;span class=&quot;nt&quot;&gt;--output&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;custom-columns&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;NAME:.metadata.name,DOMAIN:.status.domain
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;And test your service.&lt;/p&gt;
+
+&lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;curl &lt;span class=&quot;nt&quot;&gt;--connect-to&lt;/span&gt; helloworld-go.default.example.com:80:&lt;span class=&quot;k&quot;&gt;$(&lt;/span&gt;glooctl proxy address &lt;span class=&quot;nt&quot;&gt;--name&lt;/span&gt; clusteringress-proxy&lt;span class=&quot;k&quot;&gt;)&lt;/span&gt; http://helloworld-go.default.example.com
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h2 id=&quot;cleanup&quot;&gt;Cleanup&lt;/h2&gt;
+
+&lt;div class=&quot;language-shell highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;kubectl delete &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+  &lt;span class=&quot;nt&quot;&gt;--filename&lt;/span&gt; serviceaccount.yaml &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+  &lt;span class=&quot;nt&quot;&gt;--filename&lt;/span&gt; service-build.yaml
+
+kubectl delete secret basic-user-pass
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h1 id=&quot;summary&quot;&gt;Summary&lt;/h1&gt;
+
+&lt;p&gt;Hopefully, this post gave you a taste for how Gloo and Knative can work together to provide you with a way to build and
+deploy your services on demand into Kubernetes.&lt;/p&gt;
+
+&lt;h1 id=&quot;see-also&quot;&gt;See Also&lt;/h1&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;a href=&quot;https://github.com/knative/docs/blob/master/install/getting-started-knative-app.md&quot;&gt;https://github.com/knative/docs/blob/master/install/getting-started-knative-app.md&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://github.com/knative/docs&quot;&gt;https://github.com/knative/docs&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://gloo.solo.io/getting_started/kubernetes/gloo_with_knative/&quot;&gt;https://gloo.solo.io/getting_started/kubernetes/gloo_with_knative/&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+        <pubDate>Tue, 02 Apr 2019 15:28:31 -0400</pubDate>
+        <link>https://scott.cranton.com/knative-and-gloo.html</link>
+        <guid isPermaLink="true">https://scott.cranton.com/knative-and-gloo.html</guid>
+        
+        <category>Gloo</category>
+        
+        <category>Knative</category>
+        
+        <category>Kubernetes</category>
+        
+        
+      </item>
     
       <item>
         <title>Kubernetes Ingress Control using Gloo</title>
@@ -1456,16 +1709,6 @@ space. I’m very excited to be there, especially as I’m getting back hands on
         <category>Message Groups</category>
         
         <category>ActiveMQ</category>
-        
-        
-      </item>
-    
-      <item>
-        <title>Getting Started with FUSE ESB 4.2 Webinar</title>
-        <description>I'm doing the &lt;a href=&quot;https://progress.webex.com/progress/onstage/g.php?t=a&amp;amp;d=711311595&amp;amp;SourceId=SM&quot;&gt;Getting Started with FUSE ESB 4.2 Webinar&lt;/a&gt; tomorrow - 15-July&lt;br /&gt;&lt;br /&gt;As always, I'm updating the sample code to reference the latest and greatest version of FUSE. One of the big changes I'm doing this time is making the shared WSDL file a real shared resource. Its always bugged me that I've had two+ copies of the WSDL file in the project, since it needs to be the same for everything to work correctly.&lt;br /&gt;&lt;br /&gt;I found a great article on how to do shared resources in Maven &lt;a href=&quot;http://www.sonatype.com/people/2008/04/how-to-share-resources-across-projects-in-maven/&quot;&gt;here&lt;/a&gt;. So we'll see how this goes…&lt;br /&gt;&lt;br /&gt;I figure (hope) its helpful to people that this project could be used as a starter template for future projects. It does make the Maven POMs more complicated than they need to be for this simple project, but it reflects the best practices that I've been able to find on the web. My hope is that if this is used as a template for more complicated projects, then all this extra effort will pay off.&lt;br /&gt;&lt;br /&gt;Hope to see you tomorrow at the webinar…</description>
-        <pubDate>Wed, 14 Jul 2010 11:32:00 -0400</pubDate>
-        <link>https://scott.cranton.com/getting-started-with-fuse-esb-42.html</link>
-        <guid isPermaLink="true">https://scott.cranton.com/getting-started-with-fuse-esb-42.html</guid>
         
         
       </item>

@@ -166,6 +166,8 @@
             
                 
             
+                
+            
         </div>
         
     
@@ -197,6 +199,291 @@
 
                 <h1>Posts Tagged - Gloo</h1>
 
+
+    
+        
+        <article class="post" role="article" itemscope itemtype="http://schema.org/BlogPosting">
+            <header class="post-header">
+                <ul>
+                    <li><time datetime="2019-04-02T15:28:31-04:00" itemprop="datePublished">2 Apr, 2019</time></li>
+                    
+                </ul>
+                <h2 itemprop="name headline"><a href="https://scott.cranton.com/knative-and-gloo.html">Automating your Services with Knative and Solo.io Gloo</a></h2>
+            </header>
+
+            <div class="post-content">
+                <p><a href="https://github.com/knative/">Knative</a> is talked about a great deal, especially around how its capabilities can
+help provide more standard building blocks on top of Kubernetes for building microservices and serverless like services,
+e.g., scale to zero, and scale on demand. Knative high level has three capability areas: building, serving, and eventing.
+This post will provide some examples around Knative Build and Knative Serving with Solo.io Gloo.</p>
+
+<p>Knative Serving initially included all of Istio only to use a small fraction of its capabilities around being a
+Kubernetes cluster ingress. Recently the Knative team added <a href="https://solo.io">Solo.io</a> <a href="https://gloo.solo.io">Gloo</a> as
+an alternative to Istio. More details are available in <a href="https://medium.com/solo-io/gloo-knative-and-the-future-of-serverless-902b89f15c2c">Gloo, Knative and the future of Serverless</a>
+and <a href="https://medium.com/solo-io/gloo-by-solo-io-is-the-first-alternative-to-istio-on-knative-324753586f3a">Gloo, by Solo.io, is the first alternative to Istio on Knative</a>.</p>
+
+<p>This post shows a quick example of Knative Building, Knative Serving, and Gloo integration.</p>
+
+<p>All of the Kubernetes Manifests are located in the following GitHub repository
+<a href="https://github.com/scranton/helloworld-knative">https://github.com/scranton/helloworld-knative</a>. I encourage you to fork that repository to help you try these examples
+yourself.</p>
+
+<h1 id="setup">Setup</h1>
+
+<p>These instructions assume you are running on a clean, recent <a href="https://kubernetes.io/docs/setup/minikube/">minikube</a>
+install locally, and that you also have <code class="highlighter-rouge">kubectl</code> available locally.</p>
+
+<h2 id="install-gloo">Install Gloo</h2>
+
+<p>On Mac or Linux, the quickest option is to use <a href="https://bash.sh/">Homebrew</a>. Full Gloo
+install instructions at <a href="https://gloo.solo.io/installation/install_glooctl/">Gloo documentation</a>.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>brew <span class="nb">install </span>glooctl
+</code></pre></div></div>
+
+<p>Then assuming you’ve got a running <code class="highlighter-rouge">minikube</code>, and <code class="highlighter-rouge">kubectl</code> set up against that <code class="highlighter-rouge">minikube</code> instance, i.e., <code class="highlighter-rouge">kubectl
+config current-context</code> returns <code class="highlighter-rouge">minikube</code>, run the following to install Gloo with Knative Serving.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>glooctl <span class="nb">install </span>knative
+</code></pre></div></div>
+
+<h1 id="deploy-existing-exampleimage">Deploy existing example image</h1>
+
+<p>I’ve already built this example, and have hosted the image publicly in my <a href="https://hub.docker.com/r/scottcranton/helloworld-go">Docker Hub repository</a>.
+To use Knative to serve up this existing image, you need to do the following command.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kubectl apply <span class="nt">--filename</span> service.yaml
+</code></pre></div></div>
+
+<p>Verify the domain URL for the service. It should be <code class="highlighter-rouge">helloworld-go.default.example.com</code>.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kubectl get kservice helloworld-go <span class="se">\</span>
+  <span class="nt">--namespace</span> default <span class="se">\</span>
+  <span class="nt">--output</span><span class="o">=</span>custom-columns<span class="o">=</span>NAME:.metadata.name,DOMAIN:.status.domain
+</code></pre></div></div>
+
+<p>And call the service. Note: the <code class="highlighter-rouge">curl --connect-to</code> option is only required when calling locally against minikube as
+that option will add the correct host and sni headers to the request, and send the request to the host and port pair
+returned from <code class="highlighter-rouge">glooctl proxy address</code>.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>curl <span class="nt">--connect-to</span> helloworld-go.default.example.com:80:<span class="k">$(</span>glooctl proxy address <span class="nt">--name</span> clusteringress-proxy<span class="k">)</span> http://helloworld-go.default.example.com
+</code></pre></div></div>
+
+<p>To clean up, delete the resources.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kubectl delete <span class="nt">--filename</span> service.yaml
+</code></pre></div></div>
+
+<h1 id="build-locally-and-deploy-using-knativeserving">Build locally, and deploy using Knative Serving</h1>
+
+<p>Run <code class="highlighter-rouge">docker build</code> with your Docker Hub username.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>docker build <span class="nt">-t</span> <span class="k">${</span><span class="nv">DOCKER_USERNAME</span><span class="k">}</span>/helloworld-go <span class="nb">.</span>
+docker push <span class="k">${</span><span class="nv">DOCKER_USERNAME</span><span class="k">}</span>/helloworld-go
+</code></pre></div></div>
+
+<p>Deploy the service. Again, make sure you updated username in <code class="highlighter-rouge">service.yaml</code> file, i.e., replace image reference
+<code class="highlighter-rouge">docker.io/scottcranton/helloworld-go</code> with your Docker Hub username.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kubectl apply <span class="nt">--filename</span> service.yaml
+</code></pre></div></div>
+
+<p>Verify domain URL for service. Should be <code class="highlighter-rouge">helloworld-go.default.example.com</code>.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kubectl get kservice helloworld-go <span class="se">\</span>
+  <span class="nt">--namespace</span> default <span class="se">\</span>
+  <span class="nt">--output</span><span class="o">=</span>custom-columns<span class="o">=</span>NAME:.metadata.name,DOMAIN:.status.domain
+</code></pre></div></div>
+
+<p>And test your service.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>curl <span class="nt">--connect-to</span> helloworld-go.default.example.com:80:<span class="k">$(</span>glooctl proxy address <span class="nt">--name</span> clusteringress-proxy<span class="k">)</span> http://helloworld-go.default.example.com
+</code></pre></div></div>
+
+<p>To clean up, delete the resources.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kubectl delete <span class="nt">--filename</span> service.yaml
+</code></pre></div></div>
+
+<h1 id="build-using-knative-build-and-deploy-using-knativeserving">Build using Knative Build, and deploy using Knative Serving</h1>
+
+<p>To install Knative Build, do the following. I’m using the <code class="highlighter-rouge">kaniko</code> build template, so you’ll also need to install that
+as well.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kubectl apply <span class="se">\</span>
+  <span class="nt">--filename</span> https://github.com/knative/build/releases/download/v0.4.0/build.yaml
+
+kubectl apply <span class="se">\</span>
+  <span class="nt">--filename</span> https://raw.githubusercontent.com/knative/build-templates/master/kaniko/kaniko.yaml
+</code></pre></div></div>
+
+<p>To verify the Knative Build install, do the following.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kubectl get pods <span class="nt">--namespace</span> knative-build
+</code></pre></div></div>
+
+<p>I’d encourage forking my example GitHub repository <a href="https://github.com/scranton/helloworld-knative">https://github.com/scranton/helloworld-knative</a>, so you can push
+code changes and see them in your environment.</p>
+
+<p>Create a Kubernetes secret for your Docker Hub account that will allow Knative build to push your image. You also need to annotate the secret to indicate it’s for Docker. More details in <a href="https://www.knative.dev/docs/build/auth/#guiding-credential-selection">Guiding credential selection</a>.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kubectl create secret generic basic-user-pass <span class="se">\</span>
+  <span class="nt">--type</span><span class="o">=</span><span class="s2">"kubernetes.io/basic-auth"</span> <span class="se">\</span>
+  <span class="nt">--from-literal</span><span class="o">=</span><span class="nv">username</span><span class="o">=</span><span class="k">${</span><span class="nv">DOCKER_USERNAME</span><span class="k">}</span> <span class="se">\</span>
+  <span class="nt">--from-literal</span><span class="o">=</span><span class="nv">password</span><span class="o">=</span><span class="k">${</span><span class="nv">DOCKER_PASSWORD</span><span class="k">}</span>
+
+kubectl annotate secret basic-user-pass <span class="se">\</span>
+  build.knative.dev/docker-0<span class="o">=</span>https://index.docker.io/v1/
+</code></pre></div></div>
+
+<p>It should result in a secret like the following.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kubectl describe secret basic-user-pass
+
+Name:         basic-user-pass
+Namespace:    default
+Labels:       &lt;none&gt;
+Annotations:  build.knative.dev/docker-0: https://index.docker.io/v1/
+
+Type:  kubernetes.io/basic-auth
+
+Data
+<span class="o">====</span>
+username:  12 bytes
+password:  24 bytes
+</code></pre></div></div>
+
+<p>Verify that <code class="highlighter-rouge">serviceaccount.yaml</code> references your secret.</p>
+
+<div class="language-yaml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="na">apiVersion</span><span class="pi">:</span> <span class="s">v1</span>
+<span class="na">kind</span><span class="pi">:</span> <span class="s">ServiceAccount</span>
+<span class="na">metadata</span><span class="pi">:</span>
+  <span class="na">name</span><span class="pi">:</span> <span class="s">build-bot</span>
+<span class="na">secrets</span><span class="pi">:</span>
+  <span class="pi">-</span> <span class="na">name</span><span class="pi">:</span> <span class="s">basic-user-pass</span>
+</code></pre></div></div>
+
+<p>Update <code class="highlighter-rouge">service-build.yaml</code> with your GitHub and Docker usernames. This manifest will use Knative Build to create an
+image using the <code class="highlighter-rouge">kaniko-build</code> build template and deploy the service using Knative Serving with Gloo.</p>
+
+<div class="language-yaml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="na">apiVersion</span><span class="pi">:</span> <span class="s">serving.knative.dev/v1alpha1</span>
+<span class="na">kind</span><span class="pi">:</span> <span class="s">Service</span>
+<span class="na">metadata</span><span class="pi">:</span>
+  <span class="na">name</span><span class="pi">:</span> <span class="s">helloworld-go</span>
+  <span class="na">namespace</span><span class="pi">:</span> <span class="s">default</span>
+<span class="na">spec</span><span class="pi">:</span>
+  <span class="na">runLatest</span><span class="pi">:</span>
+    <span class="na">configuration</span><span class="pi">:</span>
+      <span class="na">build</span><span class="pi">:</span>
+        <span class="na">apiVersion</span><span class="pi">:</span> <span class="s">build.knative.dev/v1alpha1</span>
+        <span class="na">kind</span><span class="pi">:</span> <span class="s">Build</span>
+        <span class="na">metadata</span><span class="pi">:</span>
+          <span class="na">name</span><span class="pi">:</span> <span class="s">kaniko-build</span>
+        <span class="na">spec</span><span class="pi">:</span>
+          <span class="na">serviceAccountName</span><span class="pi">:</span> <span class="s">build-bot</span>
+          <span class="na">source</span><span class="pi">:</span>
+            <span class="na">git</span><span class="pi">:</span>
+              <span class="na">url</span><span class="pi">:</span> <span class="s">https://github.com/{ GitHub username }/helloworld-knative</span>
+              <span class="na">revision</span><span class="pi">:</span> <span class="s">master</span>
+          <span class="na">template</span><span class="pi">:</span>
+            <span class="na">name</span><span class="pi">:</span> <span class="s">kaniko</span>
+            <span class="na">arguments</span><span class="pi">:</span>
+              <span class="pi">-</span> <span class="na">name</span><span class="pi">:</span> <span class="s">IMAGE</span>
+                <span class="na">value</span><span class="pi">:</span> <span class="s">docker.io/{ Docker Hub username }/helloworld-go</span>
+          <span class="na">timeout</span><span class="pi">:</span> <span class="s">10m</span>
+      <span class="na">revisionTemplate</span><span class="pi">:</span>
+        <span class="na">spec</span><span class="pi">:</span>
+          <span class="na">container</span><span class="pi">:</span>
+            <span class="na">image</span><span class="pi">:</span> <span class="s">docker.io/{ Docker Hub username }/helloworld-go</span>
+            <span class="na">imagePullPolicy</span><span class="pi">:</span> <span class="s">Always</span>
+            <span class="na">env</span><span class="pi">:</span>
+              <span class="pi">-</span> <span class="na">name</span><span class="pi">:</span> <span class="s">TARGET</span>
+                <span class="na">value</span><span class="pi">:</span> <span class="s2">"</span><span class="s">Go</span><span class="nv"> </span><span class="s">Sample</span><span class="nv"> </span><span class="s">v1"</span>
+</code></pre></div></div>
+
+<p>To deploy, apply the manifests.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kubectl apply <span class="se">\</span>
+  <span class="nt">--filename</span> serviceaccount.yaml <span class="se">\</span>
+  <span class="nt">--filename</span> service-build.yaml
+</code></pre></div></div>
+
+<p>Then you can watch the build and deployment happening.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kubectl get pods <span class="nt">--watch</span>
+</code></pre></div></div>
+
+<p>Once you see all the <code class="highlighter-rouge">helloworld-go-0000x-deployment-....</code> pods are ready, then you can Ctrl+C to escape the watch, and
+then test your deployment.</p>
+
+<p>Verify the domain URL for service. Should be <code class="highlighter-rouge">helloworld-go.default.example.com</code>.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kubectl get kservice helloworld-go <span class="se">\</span>
+  <span class="nt">--namespace</span> default <span class="se">\</span>
+  <span class="nt">--output</span><span class="o">=</span>custom-columns<span class="o">=</span>NAME:.metadata.name,DOMAIN:.status.domain
+</code></pre></div></div>
+
+<p>And test your service.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>curl <span class="nt">--connect-to</span> helloworld-go.default.example.com:80:<span class="k">$(</span>glooctl proxy address <span class="nt">--name</span> clusteringress-proxy<span class="k">)</span> http://helloworld-go.default.example.com
+</code></pre></div></div>
+
+<h2 id="cleanup">Cleanup</h2>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kubectl delete <span class="se">\</span>
+  <span class="nt">--filename</span> serviceaccount.yaml <span class="se">\</span>
+  <span class="nt">--filename</span> service-build.yaml
+
+kubectl delete secret basic-user-pass
+</code></pre></div></div>
+
+<h1 id="summary">Summary</h1>
+
+<p>Hopefully, this post gave you a taste for how Gloo and Knative can work together to provide you with a way to build and
+deploy your services on demand into Kubernetes.</p>
+
+<h1 id="see-also">See Also</h1>
+
+<ul>
+  <li><a href="https://github.com/knative/docs/blob/master/install/getting-started-knative-app.md">https://github.com/knative/docs/blob/master/install/getting-started-knative-app.md</a></li>
+  <li><a href="https://github.com/knative/docs">https://github.com/knative/docs</a></li>
+  <li><a href="https://gloo.solo.io/getting_started/kubernetes/gloo_with_knative/">https://gloo.solo.io/getting_started/kubernetes/gloo_with_knative/</a></li>
+</ul>
+
+
+                
+                    <p><a href="/knative-and-gloo.html" role="button">Read More</a></p>
+                
+            </div>
+
+            <footer class="post-footer">
+                <div class="share">Share
+                    <ul class="social-networks">
+                        <li class="share-facebook"><a href="https://www.facebook.com/sharer.php?s=100&p[title]=Automating your Services with Knative and Solo.io Gloo&p[summary]=Learn how Knative and Solo.io Gloo work together to support on demand code delivery in Kubernetes.&p[url]=https://scott.cranton.com/knative-and-gloo.html" class="s_facebook" target="_blank" onclick="window.open(this.href, '','width=700,height=300');return false;"><svg title="" width="16" height="16"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://scott.cranton.com/assets/svg/social-icons.svg#facebook-icon"></use></svg></a></a></li>
+                        <li class="share-twitter"><a href="http://twitter.com/share?url=https://scott.cranton.com/knative-and-gloo.html&text=Learn how Knative and Solo.io Gloo work together to support on demand code delivery in Kubernetes.&hashtags=Gloo,Knative,Kubernetes," rel="noreferrer" target="_blank" onclick="window.open(this.href, '','width=700,height=300');return false;"><svg title="" width="16" height="16"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://scott.cranton.com/assets/svg/social-icons.svg#twitter-icon"></use></svg></a></li>
+                    </ul>
+                </div>
+                
+                <div class="tags">
+                    <ul>
+                        
+                        <li><a href="https://scott.cranton.com/tag/Gloo">Gloo</a></li>
+                        
+                        <li><a href="https://scott.cranton.com/tag/Knative">Knative</a></li>
+                        
+                        <li><a href="https://scott.cranton.com/tag/Kubernetes">Kubernetes</a></li>
+                        
+                    </ul>
+                </div>
+                
+            </footer>
+        </article>
+        
+    
+        
+    
+        
+    
 
     
         

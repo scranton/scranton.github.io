@@ -61,6 +61,10 @@
 <lastmod>2019-03-28T12:37:03-04:00</lastmod>
 </url>
 <url>
+<loc>https://scott.cranton.com/knative-and-gloo.html</loc>
+<lastmod>2019-04-02T15:28:31-04:00</lastmod>
+</url>
+<url>
 <loc>https://scott.cranton.com/404</loc>
 </url>
 <url>
@@ -98,6 +102,9 @@
 </url>
 <url>
 <loc>https://scott.cranton.com/tag/Kubernetes/</loc>
+</url>
+<url>
+<loc>https://scott.cranton.com/tag/Knative/</loc>
 </url>
 <url>
 <loc>https://scott.cranton.com/page2/</loc>
