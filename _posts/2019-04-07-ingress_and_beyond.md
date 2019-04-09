@@ -18,10 +18,10 @@ tags:
 
 This post was inspired by listening to the February 19, 2019, [Kubernetes Podcast](https://kubernetespodcast.com/),
 ["Ingress, with Tim Hockin."](https://kubernetespodcast.com/episode/041-ingress/) The Kubernetes Podcast is turning out
-to be a very well done podcast overall, and well worth the listen. In the Ingress episode, the podcast interviews
+to be a very well done podcast overall, and well worth the listen. In the Ingress episode, the podcasters interview
 Tim Hockin who's one of the original Kubernetes co-founders, a team lead on the Kubernetes predecessor Borg/Omega,
 and is still very active within the Kubernetes community such as chairing the [Kubernetes Network Special Interest Group](https://github.com/kubernetes/community/tree/master/sig-network)
-that currently own the Ingress specification. Tim talks in the podcast about the history of the
+that currently own the Ingress resource specification. Tim talks in the podcast about the history of the
 [Kubernetes Ingress](https://kubernetes.io/docs/concepts/services-networking/ingress/), current developments around
 Ingress, and proposed futures. This talk inspired me to reflect on both Ingress Controllers (realizes the implementation of
 Ingress manifest) and Ingress the concept (allow client outside the Kubernetes cluster to access services running in
@@ -37,9 +37,9 @@ that controller's associated routes.
 
 ![Gloo as Ingress](/assets/gloo_as_ingress.png)
 
-Each Ingress manifest includes an annotation that specifies that indicates which
-Ingress controller should manage that Ingress instance. For example, to have [Solo.io](https://solo.io) [Gloo](https://gloo.solo.io)
-manage an Ingress, you could specify the following. Note the annotation `kubernetes.io/ingress.class: gloo`.
+Each Ingress manifest includes an annotation that indicates which Ingress controller should manage that Ingress resource.
+For example, to have [Solo.io](https://solo.io) [Gloo](https://gloo.solo.io) manage a specific Ingress resource, you
+would specify the following. Note the included annotation `kubernetes.io/ingress.class: gloo`.
 
 ```yaml
 apiVersion: extensions/v1beta1
@@ -64,46 +64,49 @@ spec:
 
 ## Ingress Challenges
 
-Ingress has existed as a beta extension since Kubernetes 1.1 as it's proven to be a lowest common denominator API. The
-NGNIX community Ingress Controller is used by many in production, but that controller requires the use of one of many
-[NGNIX specific Ingress Annotations](https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/annotations/)
-for all but the simplest use cases. The current API has many limitations like all referenced services and secrets MUST
-be in the same namespace as the Ingress, i.e., no cross namespace referencing. And there have been long debates about
-how exactly to interpret the `path` attribute; is it a regular expression like the documentation implies OR is it a path
-prefix like some controllers like NGNIX implement. These challenges have made it, in practice, difficult to have
-an Ingress manifest that is portable across implementations. The current Ingress manifest has also proven difficult to
-round trip sync with [Custom Resources (CRD)](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/)
-as CRDs have proven to be a beneficial way to extend Kubernetes.
+Ingress has existed as a beta extension since Kubernetes 1.1, and it's proven to be a lowest common denominator API. For
+example, the NGNIX community Ingress Controller is used by many in production, but that NGNIX Ingress controller
+requires the use of many [NGNIX specific Ingress Annotations](https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/annotations/)
+for all but the simplest use cases. The current Kubernetes Ingress resource specification has many limitations like that all
+referenced services and secrets MUST be in the same namespace as the Ingress, i.e., no cross namespace referencing.
+And there have been long debates about how exactly to interpret the `path` attribute; is it a regular expression like
+the documentation implies OR is it a path prefix like some controllers like NGNIX implement. These challenges have made
+it, in practice, difficult to have an Ingress manifest that is portable across implementations. The current Ingress
+manifest has also proven difficult to round trip sync with [Custom Resources (CRD)](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/)
+which is unfortunate as CRDs are proving to be a beneficial way to extend Kubernetes.
 
 ## What's Next for Ingress?
 
 In the podcast, Tim Hockin says given how many are using the current beta Ingress spec in production, there is a push
-to move the existing Ingress spec to 1.0 GA status, and start work on a next-generation spec, either an Ingress v2 or
+to move the existing Ingress spec to GA status, and then start work on a next-generation specification, either an Ingress v2 or
 breaking up Ingress across multiple CRDs. Tim mentions how the Kubernetes community is looking at several
 [Envoy](https://www.envoyproxy.io/) based Ingress implementations for inspiration for the next generation of Ingress. For
 example, [Heptio Contour](https://github.com/heptio/contour) has created a very interesting, and implementation
-neutral CRDs called [Ingress Route](https://github.com/heptio/contour/blob/master/docs/ingressroute.md). An Ingress Route
+neutral CRD called [Ingress Route](https://github.com/heptio/contour/blob/master/docs/ingressroute.md). An Ingress Route
 looks to address the governance challenges with Ingress, for example, if a company wants to expose a
 `/eng` route path there are many challenges with the current Ingress model as you can have conflicting Ingress
 manifests for the route `/eng`. Ingress Route provides a way to create governance and delegation such as cluster admins
 can define a virtual host `/eng` and delegate implementation explicitly to the `eng` namespace, and this prevents others
-from overriding that route.
+from overriding that route path.
 
 The [Istio](https://istio.io/) community, also based on Envoy like Heptio Contour, are also defining Ingress CRDs.
 
 It will be fascinating to see how Ingress evolves in the not too distant future.
 
+Related reading: [API Gateways are going through an identity crisis](https://medium.com/solo-io/api-gateways-are-going-through-an-identity-crisis-d1d833a313d7).
+
 ## Demo Time
 
-I find it helpful to see some code to make concepts more concrete, so let's run through a few examples of Ingress and
+I find it helpful to see working code to help make concepts more real, so let's run through a few examples of Ingress and
 beyond.
 
 For this example, I'm going to use a Kubernetes service created from <https://jsonplaceholder.typicode.com/>, which
 provides a quick set of REST APIs that provide different JSON output that can be helpful for testing. It's based on
 a Node.js [json-server](https://github.com/typicode/json-server) - it's very cool and worth looking at independently. I
-forked the original GitHub [jsonplaceholder repository](https://github.com/typicode/jsonplaceholder), ran [Draft create](https://draft.sh/)
-on the project, and made a couple of tweaks to the generated [Helm](https://helm.sh/) chart. Draft is a super fast and easy way
-to bootstrap existing code into Kubernetes. I'm running all of this locally using [minikube](https://kubernetes.io/docs/setup/minikube/).
+forked the original GitHub [jsonplaceholder repository](https://github.com/typicode/jsonplaceholder), ran [`draft create`](https://draft.sh/)
+on the project, and made a couple of tweaks to the generated [Helm](https://helm.sh/) chart. [Draft](https://draft.sh/)
+is a super fast and easy way to bootstrap existing code into Kubernetes. I'm running all of this example locally using
+[minikube](https://kubernetes.io/docs/setup/minikube/).
 
 The jsonplaceholder service comes with six common resources each of which returns several JSON objects. For this
 example, we'll be getting the first user resource at `/users/1`.
@@ -115,8 +118,8 @@ example, we'll be getting the first user resource at `/users/1`.
 * `/todos`	200 todos
 * `/users`	10 users
 
-Following is the script to try this example yourself, and there's also an [asciinema](https://asciinema.org/) playback so you can see
-what it looks like running on my machine (playback is sped up). We'll unpack what's happening following the playback.
+Following is a script to try this example yourself, and there's also an [asciinema](https://asciinema.org/) playback so you can see
+what it looks like running on my machine. We'll unpack what's happening following the playback.
 
 ```shell
 # Install tooling
@@ -150,7 +153,7 @@ curl --header "Host: gloo.example.com" \
   $(glooctl proxy url --name ingress-proxy)/users/1
 ```
 
-<script id="asciicast-JjLna1ONZiGmQeYrJhP4oNcS5" src="https://asciinema.org/a/JjLna1ONZiGmQeYrJhP4oNcS5.js" data-speed="3" data-rows="32" data-cols="80" async></script>
+<script id="asciicast-JjLna1ONZiGmQeYrJhP4oNcS5" src="https://asciinema.org/a/JjLna1ONZiGmQeYrJhP4oNcS5.js" data-speed="1.5" data-rows="32" data-cols="80" async></script>
 
 ## What Happened?
 
@@ -160,14 +163,14 @@ We installed local tooling (you can check respective websites for full install d
 * [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
 * [Helm](https://helm.sh/)
 * [Draft](https://draft.sh/)
-* [Gloo](https://gloo.solo.io)
+* [glooctl](https://gloo.solo.io)
 
 We then started up a local Kubernetes cluster (minikube) and initialized Helm and Draft. We also installed
 [Gloo ingress](https://gloo.solo.io/user_guides/basic_ingress/) into our local cluster.
 
-We then `git clone` our example up and used `draft up` to build and deploy it to our cluster. Let's spend a minute on
+We then `git clone` our example and used `draft up` to build and deploy it to our cluster. Let's spend a minute on
 what happened in this step. I originally forked the `jsonplaceholder` GitHub repository and ran `draft create` against
-its code. Draft autodetects the source code language, in this case, Node.js, and create both a `Dockerfile` that builds
+its code. Draft autodetects the source code language, in this case, Node.js, and creates both a `Dockerfile` that builds
 our example application into an image container and creates a default Helm chart. I then made a few minor tweaks to the
 Helm chart to enable its Ingress. Let's look at that Ingress manifest. The main changes are the addition of the
 `ingress.class: gloo` annotation to mark this Ingress for Gloo's Ingress Controller. And the host is set to
@@ -204,8 +207,8 @@ For more examples of using Gloo as an basic Ingress controller you can check out
 [Kubernetes Ingress Control using Gloo](https://scott.cranton.com/kubernetes-ingress-controlling-with-gloo.html).
 
 You may have also noticed the call to `$(glooctl proxy url --name ingress-proxy)` in the curl command. This is needed
-when you're running in a local environment like minikube, and you need to get the host IP and port of the Gloo proxy
-server. When deployed to a Cloud Provider like Google or AWS, then those environments would associate a static IP and
+when you're running in a local environment like minikube and you need to get the host IP and port of the Gloo proxy
+server. When Gloo is deployed to a Cloud Provider like Google or AWS, then those environments would associate a static IP and
 allow port 80 (or port 443 for HTTPS) to be used, and that static IP would be registered with a DNS server, i.e., 
 when Gloo is deployed to a cloud-managed Kubernetes you could do `curl http://gloo.example.com/users/1`.
 
@@ -215,7 +218,7 @@ Let's say we wanted to remap the exiting `/users/1` to `/people/1` as users are 
 Ingress manifests as we can set up a second rule for `/people`, but we need to rewrite that path to `/users` before
 sending to our service as it doesn't know how to handle requests for `/people`. If you were using the NGNIX ingress, you
 could add another annotation `nginx.ingress.kubernetes.io/rewrite-target: /`, but now we're adding implementation
-specific annotations, that is the nginx annotation won't be recognized by other Ingress Controllers. And annotations
+specific annotations, that is, the nginx annotation won't be recognized by other Ingress Controllers. And annotations
 are a flat name space so adding lots of annotations can get quite messy, which is part of why
 [Custom Resources (CRD)](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/) was
 created. Let's see what the original route, and our path re-writing route, would look like in a CRD based Ingress: Gloo.
@@ -223,8 +226,8 @@ created. Let's see what the original route, and our path re-writing route, would
 ## Gloo Virtual Services
 
 Gloo uses a concept called [Virtual Service](https://gloo.solo.io/introduction/concepts#virtual-services) that is
-derived from similar ideas in Istio/Envoy and is conceptually equivalent to an Ingress resource. Easiest to show
-you the equivalent of example Ingress we've created so far in a Gloo Virtual Service.
+derived from similar ideas in Istio and Envoy and is conceptually equivalent to an Ingress resource. Easiest to show
+you the equivalent of the example Ingress we've created so far in a Gloo Virtual Service.
 
 ```yaml
 apiVersion: gateway.solo.io/v1
@@ -367,7 +370,7 @@ curl --verbose --header "Host: gloo.example.com" \
   $(glooctl proxy url --name gateway-proxy)/people/1
 ```
 
-<script id="asciicast-5DXyvz6bOmd6zTjayKJ4kjZlB" src="https://asciinema.org/a/5DXyvz6bOmd6zTjayKJ4kjZlB.js" data-speed="3" data-rows="32" data-cols="80" async></script>
+<script id="asciicast-5DXyvz6bOmd6zTjayKJ4kjZlB" src="https://asciinema.org/a/5DXyvz6bOmd6zTjayKJ4kjZlB.js" data-speed="1.5" data-rows="32" data-cols="80" async></script>
 
 <img src="/assets/mind_blown.png" alt="Mind Blown" style="width: 75px;" class="aligncenter"/>
 

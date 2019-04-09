@@ -221,10 +221,10 @@
 
 <p>This post was inspired by listening to the February 19, 2019, <a href="https://kubernetespodcast.com/">Kubernetes Podcast</a>,
 <a href="https://kubernetespodcast.com/episode/041-ingress/">“Ingress, with Tim Hockin.”</a> The Kubernetes Podcast is turning out
-to be a very well done podcast overall, and well worth the listen. In the Ingress episode, the podcast interviews
+to be a very well done podcast overall, and well worth the listen. In the Ingress episode, the podcasters interview
 Tim Hockin who’s one of the original Kubernetes co-founders, a team lead on the Kubernetes predecessor Borg/Omega,
 and is still very active within the Kubernetes community such as chairing the <a href="https://github.com/kubernetes/community/tree/master/sig-network">Kubernetes Network Special Interest Group</a>
-that currently own the Ingress specification. Tim talks in the podcast about the history of the
+that currently own the Ingress resource specification. Tim talks in the podcast about the history of the
 <a href="https://kubernetes.io/docs/concepts/services-networking/ingress/">Kubernetes Ingress</a>, current developments around
 Ingress, and proposed futures. This talk inspired me to reflect on both Ingress Controllers (realizes the implementation of
 Ingress manifest) and Ingress the concept (allow client outside the Kubernetes cluster to access services running in
@@ -240,9 +240,9 @@ that controller’s associated routes.</p>
 
 <p><img src="/assets/gloo_as_ingress.png" alt="Gloo as Ingress" /></p>
 
-<p>Each Ingress manifest includes an annotation that specifies that indicates which
-Ingress controller should manage that Ingress instance. For example, to have <a href="https://solo.io">Solo.io</a> <a href="https://gloo.solo.io">Gloo</a>
-manage an Ingress, you could specify the following. Note the annotation <code class="highlighter-rouge">kubernetes.io/ingress.class: gloo</code>.</p>
+<p>Each Ingress manifest includes an annotation that indicates which Ingress controller should manage that Ingress resource.
+For example, to have <a href="https://solo.io">Solo.io</a> <a href="https://gloo.solo.io">Gloo</a> manage a specific Ingress resource, you
+would specify the following. Note the included annotation <code class="highlighter-rouge">kubernetes.io/ingress.class: gloo</code>.</p>
 
 <div class="language-yaml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="na">apiVersion</span><span class="pi">:</span> <span class="s">extensions/v1beta1</span>
 <span class="na">kind</span><span class="pi">:</span> <span class="s">Ingress</span>
@@ -266,46 +266,49 @@ manage an Ingress, you could specify the following. Note the annotation <code cl
 
 <h2 id="ingress-challenges">Ingress Challenges</h2>
 
-<p>Ingress has existed as a beta extension since Kubernetes 1.1 as it’s proven to be a lowest common denominator API. The
-NGNIX community Ingress Controller is used by many in production, but that controller requires the use of one of many
-<a href="https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/annotations/">NGNIX specific Ingress Annotations</a>
-for all but the simplest use cases. The current API has many limitations like all referenced services and secrets MUST
-be in the same namespace as the Ingress, i.e., no cross namespace referencing. And there have been long debates about
-how exactly to interpret the <code class="highlighter-rouge">path</code> attribute; is it a regular expression like the documentation implies OR is it a path
-prefix like some controllers like NGNIX implement. These challenges have made it, in practice, difficult to have
-an Ingress manifest that is portable across implementations. The current Ingress manifest has also proven difficult to
-round trip sync with <a href="https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/">Custom Resources (CRD)</a>
-as CRDs have proven to be a beneficial way to extend Kubernetes.</p>
+<p>Ingress has existed as a beta extension since Kubernetes 1.1, and it’s proven to be a lowest common denominator API. For
+example, the NGNIX community Ingress Controller is used by many in production, but that NGNIX Ingress controller
+requires the use of many <a href="https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/annotations/">NGNIX specific Ingress Annotations</a>
+for all but the simplest use cases. The current Kubernetes Ingress resource specification has many limitations like that all
+referenced services and secrets MUST be in the same namespace as the Ingress, i.e., no cross namespace referencing.
+And there have been long debates about how exactly to interpret the <code class="highlighter-rouge">path</code> attribute; is it a regular expression like
+the documentation implies OR is it a path prefix like some controllers like NGNIX implement. These challenges have made
+it, in practice, difficult to have an Ingress manifest that is portable across implementations. The current Ingress
+manifest has also proven difficult to round trip sync with <a href="https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/">Custom Resources (CRD)</a>
+which is unfortunate as CRDs are proving to be a beneficial way to extend Kubernetes.</p>
 
 <h2 id="whats-next-for-ingress">What’s Next for Ingress?</h2>
 
 <p>In the podcast, Tim Hockin says given how many are using the current beta Ingress spec in production, there is a push
-to move the existing Ingress spec to 1.0 GA status, and start work on a next-generation spec, either an Ingress v2 or
+to move the existing Ingress spec to GA status, and then start work on a next-generation specification, either an Ingress v2 or
 breaking up Ingress across multiple CRDs. Tim mentions how the Kubernetes community is looking at several
 <a href="https://www.envoyproxy.io/">Envoy</a> based Ingress implementations for inspiration for the next generation of Ingress. For
 example, <a href="https://github.com/heptio/contour">Heptio Contour</a> has created a very interesting, and implementation
-neutral CRDs called <a href="https://github.com/heptio/contour/blob/master/docs/ingressroute.md">Ingress Route</a>. An Ingress Route
+neutral CRD called <a href="https://github.com/heptio/contour/blob/master/docs/ingressroute.md">Ingress Route</a>. An Ingress Route
 looks to address the governance challenges with Ingress, for example, if a company wants to expose a
 <code class="highlighter-rouge">/eng</code> route path there are many challenges with the current Ingress model as you can have conflicting Ingress
 manifests for the route <code class="highlighter-rouge">/eng</code>. Ingress Route provides a way to create governance and delegation such as cluster admins
 can define a virtual host <code class="highlighter-rouge">/eng</code> and delegate implementation explicitly to the <code class="highlighter-rouge">eng</code> namespace, and this prevents others
-from overriding that route.</p>
+from overriding that route path.</p>
 
 <p>The <a href="https://istio.io/">Istio</a> community, also based on Envoy like Heptio Contour, are also defining Ingress CRDs.</p>
 
 <p>It will be fascinating to see how Ingress evolves in the not too distant future.</p>
 
+<p>Related reading: <a href="https://medium.com/solo-io/api-gateways-are-going-through-an-identity-crisis-d1d833a313d7">API Gateways are going through an identity crisis</a>.</p>
+
 <h2 id="demo-time">Demo Time</h2>
 
-<p>I find it helpful to see some code to make concepts more concrete, so let’s run through a few examples of Ingress and
+<p>I find it helpful to see working code to help make concepts more real, so let’s run through a few examples of Ingress and
 beyond.</p>
 
 <p>For this example, I’m going to use a Kubernetes service created from <a href="https://jsonplaceholder.typicode.com/">https://jsonplaceholder.typicode.com/</a>, which
 provides a quick set of REST APIs that provide different JSON output that can be helpful for testing. It’s based on
 a Node.js <a href="https://github.com/typicode/json-server">json-server</a> - it’s very cool and worth looking at independently. I
-forked the original GitHub <a href="https://github.com/typicode/jsonplaceholder">jsonplaceholder repository</a>, ran <a href="https://draft.sh/">Draft create</a>
-on the project, and made a couple of tweaks to the generated <a href="https://helm.sh/">Helm</a> chart. Draft is a super fast and easy way
-to bootstrap existing code into Kubernetes. I’m running all of this locally using <a href="https://kubernetes.io/docs/setup/minikube/">minikube</a>.</p>
+forked the original GitHub <a href="https://github.com/typicode/jsonplaceholder">jsonplaceholder repository</a>, ran <a href="https://draft.sh/"><code class="highlighter-rouge">draft create</code></a>
+on the project, and made a couple of tweaks to the generated <a href="https://helm.sh/">Helm</a> chart. <a href="https://draft.sh/">Draft</a>
+is a super fast and easy way to bootstrap existing code into Kubernetes. I’m running all of this example locally using
+<a href="https://kubernetes.io/docs/setup/minikube/">minikube</a>.</p>
 
 <p>The jsonplaceholder service comes with six common resources each of which returns several JSON objects. For this
 example, we’ll be getting the first user resource at <code class="highlighter-rouge">/users/1</code>.</p>
@@ -319,8 +322,8 @@ example, we’ll be getting the first user resource at <code class="highlighter-
   <li><code class="highlighter-rouge">/users</code>	10 users</li>
 </ul>
 
-<p>Following is the script to try this example yourself, and there’s also an <a href="https://asciinema.org/">asciinema</a> playback so you can see
-what it looks like running on my machine (playback is sped up). We’ll unpack what’s happening following the playback.</p>
+<p>Following is a script to try this example yourself, and there’s also an <a href="https://asciinema.org/">asciinema</a> playback so you can see
+what it looks like running on my machine. We’ll unpack what’s happening following the playback.</p>
 
 <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># Install tooling</span>
 brew update
@@ -353,7 +356,7 @@ curl <span class="nt">--header</span> <span class="s2">"Host: gloo.example.com"<
   <span class="k">$(</span>glooctl proxy url <span class="nt">--name</span> ingress-proxy<span class="k">)</span>/users/1
 </code></pre></div></div>
 
-<script id="asciicast-JjLna1ONZiGmQeYrJhP4oNcS5" src="https://asciinema.org/a/JjLna1ONZiGmQeYrJhP4oNcS5.js" data-speed="3" data-rows="32" data-cols="80" async=""></script>
+<script id="asciicast-JjLna1ONZiGmQeYrJhP4oNcS5" src="https://asciinema.org/a/JjLna1ONZiGmQeYrJhP4oNcS5.js" data-speed="1.5" data-rows="32" data-cols="80" async=""></script>
 
 <h2 id="what-happened">What Happened?</h2>
 
@@ -364,15 +367,15 @@ curl <span class="nt">--header</span> <span class="s2">"Host: gloo.example.com"<
   <li><a href="https://kubernetes.io/docs/tasks/tools/install-kubectl/">kubectl</a></li>
   <li><a href="https://helm.sh/">Helm</a></li>
   <li><a href="https://draft.sh/">Draft</a></li>
-  <li><a href="https://gloo.solo.io">Gloo</a></li>
+  <li><a href="https://gloo.solo.io">glooctl</a></li>
 </ul>
 
 <p>We then started up a local Kubernetes cluster (minikube) and initialized Helm and Draft. We also installed
 <a href="https://gloo.solo.io/user_guides/basic_ingress/">Gloo ingress</a> into our local cluster.</p>
 
-<p>We then <code class="highlighter-rouge">git clone</code> our example up and used <code class="highlighter-rouge">draft up</code> to build and deploy it to our cluster. Let’s spend a minute on
+<p>We then <code class="highlighter-rouge">git clone</code> our example and used <code class="highlighter-rouge">draft up</code> to build and deploy it to our cluster. Let’s spend a minute on
 what happened in this step. I originally forked the <code class="highlighter-rouge">jsonplaceholder</code> GitHub repository and ran <code class="highlighter-rouge">draft create</code> against
-its code. Draft autodetects the source code language, in this case, Node.js, and create both a <code class="highlighter-rouge">Dockerfile</code> that builds
+its code. Draft autodetects the source code language, in this case, Node.js, and creates both a <code class="highlighter-rouge">Dockerfile</code> that builds
 our example application into an image container and creates a default Helm chart. I then made a few minor tweaks to the
 Helm chart to enable its Ingress. Let’s look at that Ingress manifest. The main changes are the addition of the
 <code class="highlighter-rouge">ingress.class: gloo</code> annotation to mark this Ingress for Gloo’s Ingress Controller. And the host is set to
@@ -407,8 +410,8 @@ Helm chart to enable its Ingress. Let’s look at that Ingress manifest. The mai
 <a href="https://scott.cranton.com/kubernetes-ingress-controlling-with-gloo.html">Kubernetes Ingress Control using Gloo</a>.</p>
 
 <p>You may have also noticed the call to <code class="highlighter-rouge">$(glooctl proxy url --name ingress-proxy)</code> in the curl command. This is needed
-when you’re running in a local environment like minikube, and you need to get the host IP and port of the Gloo proxy
-server. When deployed to a Cloud Provider like Google or AWS, then those environments would associate a static IP and
+when you’re running in a local environment like minikube and you need to get the host IP and port of the Gloo proxy
+server. When Gloo is deployed to a Cloud Provider like Google or AWS, then those environments would associate a static IP and
 allow port 80 (or port 443 for HTTPS) to be used, and that static IP would be registered with a DNS server, i.e., 
 when Gloo is deployed to a cloud-managed Kubernetes you could do <code class="highlighter-rouge">curl http://gloo.example.com/users/1</code>.</p>
 
@@ -418,7 +421,7 @@ when Gloo is deployed to a cloud-managed Kubernetes you could do <code class="hi
 Ingress manifests as we can set up a second rule for <code class="highlighter-rouge">/people</code>, but we need to rewrite that path to <code class="highlighter-rouge">/users</code> before
 sending to our service as it doesn’t know how to handle requests for <code class="highlighter-rouge">/people</code>. If you were using the NGNIX ingress, you
 could add another annotation <code class="highlighter-rouge">nginx.ingress.kubernetes.io/rewrite-target: /</code>, but now we’re adding implementation
-specific annotations, that is the nginx annotation won’t be recognized by other Ingress Controllers. And annotations
+specific annotations, that is, the nginx annotation won’t be recognized by other Ingress Controllers. And annotations
 are a flat name space so adding lots of annotations can get quite messy, which is part of why
 <a href="https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/">Custom Resources (CRD)</a> was
 created. Let’s see what the original route, and our path re-writing route, would look like in a CRD based Ingress: Gloo.</p>
@@ -426,8 +429,8 @@ created. Let’s see what the original route, and our path re-writing route, wou
 <h2 id="gloo-virtual-services">Gloo Virtual Services</h2>
 
 <p>Gloo uses a concept called <a href="https://gloo.solo.io/introduction/concepts#virtual-services">Virtual Service</a> that is
-derived from similar ideas in Istio/Envoy and is conceptually equivalent to an Ingress resource. Easiest to show
-you the equivalent of example Ingress we’ve created so far in a Gloo Virtual Service.</p>
+derived from similar ideas in Istio and Envoy and is conceptually equivalent to an Ingress resource. Easiest to show
+you the equivalent of the example Ingress we’ve created so far in a Gloo Virtual Service.</p>
 
 <div class="language-yaml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="na">apiVersion</span><span class="pi">:</span> <span class="s">gateway.solo.io/v1</span>
 <span class="na">kind</span><span class="pi">:</span> <span class="s">VirtualService</span>
@@ -565,7 +568,7 @@ curl <span class="nt">--verbose</span> <span class="nt">--header</span> <span cl
   <span class="k">$(</span>glooctl proxy url <span class="nt">--name</span> gateway-proxy<span class="k">)</span>/people/1
 </code></pre></div></div>
 
-<script id="asciicast-5DXyvz6bOmd6zTjayKJ4kjZlB" src="https://asciinema.org/a/5DXyvz6bOmd6zTjayKJ4kjZlB.js" data-speed="3" data-rows="32" data-cols="80" async=""></script>
+<script id="asciicast-5DXyvz6bOmd6zTjayKJ4kjZlB" src="https://asciinema.org/a/5DXyvz6bOmd6zTjayKJ4kjZlB.js" data-speed="1.5" data-rows="32" data-cols="80" async=""></script>
 
 <p><img src="/assets/mind_blown.png" alt="Mind Blown" style="width: 75px;" class="aligncenter" /></p>
 
