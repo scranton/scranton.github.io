@@ -291,7 +291,7 @@ curl <span class="k">${</span><span class="nv">PROXY_URL</span><span class="k">}
 <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>curl <span class="k">${</span><span class="nv">PROXY_URL</span><span class="k">}</span>/findPetWithId/3
 </code></pre></div></div>
 
-<div class="language-json highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">{</span><span class="s2">"code"</span><span class="p">:</span><span class="mi">404</span><span class="p">,</span><span class="s2">"message"</span><span class="p">:</span><span class="s2">"not found: pet 3"</span><span class="p">}</span><span class="w">                                                                                                                                                                                             
+<div class="language-json highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">{</span><span class="s2">"code"</span><span class="p">:</span><span class="mi">404</span><span class="p">,</span><span class="s2">"message"</span><span class="p">:</span><span class="s2">"not found: pet 3"</span><span class="p">}</span><span class="w">
 </span></code></pre></div></div>
 
 <p>So let’s play with doing a Canary Release with weighted destinations to migrate the <code class="highlighter-rouge">findPetWithId</code> function.</p>
