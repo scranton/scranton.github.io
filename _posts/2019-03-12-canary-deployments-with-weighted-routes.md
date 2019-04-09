@@ -79,26 +79,26 @@ And calls to `findPetWithId` should route to `petstore-v1`, which only has 2 pet
 
 ```shell
 curl ${PROXY_URL}/findPetWithId/1
- ```
- 
- ```json
+```
+
+```json
 {"id":1,"name":"Dog","status":"available"}
 ```
- 
+
 ```shell
 curl ${PROXY_URL}/findPetWithId/2
- ```
- 
- ```json
+```
+
+```json
 {"id":2,"name":"Cat","status":"pending"}
 ```
 
 ```shell
 curl ${PROXY_URL}/findPetWithId/3
- ```
- 
- ```json
-{"code":404,"message":"not found: pet 3"}                                                                                                                                                                                             
+```
+
+```json
+{"code":404,"message":"not found: pet 3"}
 ```
 
 So let's play with doing a Canary Release with weighted destinations to migrate the `findPetWithId` function.

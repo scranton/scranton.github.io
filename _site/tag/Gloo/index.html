@@ -205,6 +205,424 @@
         <article class="post" role="article" itemscope itemtype="http://schema.org/BlogPosting">
             <header class="post-header">
                 <ul>
+                    <li><time datetime="2019-04-07T09:29:21-04:00" itemprop="datePublished">7 Apr, 2019</time></li>
+                    
+                </ul>
+                <h2 itemprop="name headline"><a href="https://scott.cranton.com/ingress_and_beyond.html">Kubernetes Ingress Past, Present, and Future</a></h2>
+            </header>
+
+            <div class="post-content">
+                <figure class="aligncenter">
+    <img src="/assets/reflect.jpeg" />
+    <figcaption>Photo by <a href="https://unsplash.com/@lukeporter" target="_blank">Luke Porter</a>.</figcaption>
+</figure>
+
+<h1 id="overview">Overview</h1>
+
+<p>This post was inspired by listening to the February 19, 2019, <a href="https://kubernetespodcast.com/">Kubernetes Podcast</a>,
+<a href="https://kubernetespodcast.com/episode/041-ingress/">“Ingress, with Tim Hockin.”</a> The Kubernetes Podcast is turning out
+to be a very well done podcast overall, and well worth the listen. In the Ingress episode, the podcast interviews
+Tim Hockin who’s one of the original Kubernetes co-founders, a team lead on the Kubernetes predecessor Borg/Omega,
+and is still very active within the Kubernetes community such as chairing the <a href="https://github.com/kubernetes/community/tree/master/sig-network">Kubernetes Network Special Interest Group</a>
+that currently own the Ingress specification. Tim talks in the podcast about the history of the
+<a href="https://kubernetes.io/docs/concepts/services-networking/ingress/">Kubernetes Ingress</a>, current developments around
+Ingress, and proposed futures. This talk inspired me to reflect on both Ingress Controllers (realizes the implementation of
+Ingress manifest) and Ingress the concept (allow client outside the Kubernetes cluster to access services running in
+the Kubernetes cluster).</p>
+
+<h2 id="so-whats-a-kubernetes-ingress">So what’s a Kubernetes Ingress?</h2>
+
+<p>To paraphrase from the <a href="https://kubernetes.io/docs/concepts/services-networking/ingress/#what-is-ingress">Kubernetes Ingress</a>
+documentation, Ingress is an L7 network service that exposes HTTP(S) routes from outside to inside a Kubernetes cluster.
+A Kubernetes cluster may have one or more <a href="https://kubernetes.io/docs/concepts/services-networking/ingress-controllers/">Ingress Controllers</a>
+running, and each controller manages service reachability, load balancing, TLS/SSL termination, and other services for
+that controller’s associated routes.</p>
+
+<p><img src="/assets/gloo_as_ingress.png" alt="Gloo as Ingress" /></p>
+
+<p>Each Ingress manifest includes an annotation that specifies that indicates which
+Ingress controller should manage that Ingress instance. For example, to have <a href="https://solo.io">Solo.io</a> <a href="https://gloo.solo.io">Gloo</a>
+manage an Ingress, you could specify the following. Note the annotation <code class="highlighter-rouge">kubernetes.io/ingress.class: gloo</code>.</p>
+
+<div class="language-yaml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="na">apiVersion</span><span class="pi">:</span> <span class="s">extensions/v1beta1</span>
+<span class="na">kind</span><span class="pi">:</span> <span class="s">Ingress</span>
+<span class="na">metadata</span><span class="pi">:</span>
+  <span class="na">annotations</span><span class="pi">:</span>
+    <span class="s">kubernetes.io/ingress.class</span><span class="pi">:</span> <span class="s">gloo</span>
+  <span class="na">labels</span><span class="pi">:</span>
+    <span class="na">chart</span><span class="pi">:</span> <span class="s">jsonplaceholder-v0.1.0</span>
+  <span class="na">name</span><span class="pi">:</span> <span class="s">jsonplaceholder-jsonplaceholder</span>
+  <span class="na">namespace</span><span class="pi">:</span> <span class="s">default</span>
+<span class="na">spec</span><span class="pi">:</span>
+  <span class="na">rules</span><span class="pi">:</span>
+  <span class="pi">-</span> <span class="na">host</span><span class="pi">:</span> <span class="s">gloo.example.com</span>
+    <span class="na">http</span><span class="pi">:</span>
+      <span class="na">paths</span><span class="pi">:</span>
+      <span class="pi">-</span> <span class="na">path</span><span class="pi">:</span> <span class="s">/.*</span>
+        <span class="na">backend</span><span class="pi">:</span>
+          <span class="na">serviceName</span><span class="pi">:</span> <span class="s">jsonplaceholder-jsonplaceholder</span>
+          <span class="na">servicePort</span><span class="pi">:</span> <span class="s">8080</span>
+</code></pre></div></div>
+
+<h2 id="ingress-challenges">Ingress Challenges</h2>
+
+<p>Ingress has existed as a beta extension since Kubernetes 1.1 as it’s proven to be a lowest common denominator API. The
+NGNIX community Ingress Controller is used by many in production, but that controller requires the use of one of many
+<a href="https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/annotations/">NGNIX specific Ingress Annotations</a>
+for all but the simplest use cases. The current API has many limitations like all referenced services and secrets MUST
+be in the same namespace as the Ingress, i.e., no cross namespace referencing. And there have been long debates about
+how exactly to interpret the <code class="highlighter-rouge">path</code> attribute; is it a regular expression like the documentation implies OR is it a path
+prefix like some controllers like NGNIX implement. These challenges have made it, in practice, difficult to have
+an Ingress manifest that is portable across implementations. The current Ingress manifest has also proven difficult to
+round trip sync with <a href="https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/">Custom Resources (CRD)</a>
+as CRDs have proven to be a beneficial way to extend Kubernetes.</p>
+
+<h2 id="whats-next-for-ingress">What’s Next for Ingress?</h2>
+
+<p>In the podcast, Tim Hockin says given how many are using the current beta Ingress spec in production, there is a push
+to move the existing Ingress spec to 1.0 GA status, and start work on a next-generation spec, either an Ingress v2 or
+breaking up Ingress across multiple CRDs. Tim mentions how the Kubernetes community is looking at several
+<a href="https://www.envoyproxy.io/">Envoy</a> based Ingress implementations for inspiration for the next generation of Ingress. For
+example, <a href="https://github.com/heptio/contour">Heptio Contour</a> has created a very interesting, and implementation
+neutral CRDs called <a href="https://github.com/heptio/contour/blob/master/docs/ingressroute.md">Ingress Route</a>. An Ingress Route
+looks to address the governance challenges with Ingress, for example, if a company wants to expose a
+<code class="highlighter-rouge">/eng</code> route path there are many challenges with the current Ingress model as you can have conflicting Ingress
+manifests for the route <code class="highlighter-rouge">/eng</code>. Ingress Route provides a way to create governance and delegation such as cluster admins
+can define a virtual host <code class="highlighter-rouge">/eng</code> and delegate implementation explicitly to the <code class="highlighter-rouge">eng</code> namespace, and this prevents others
+from overriding that route.</p>
+
+<p>The <a href="https://istio.io/">Istio</a> community, also based on Envoy like Heptio Contour, are also defining Ingress CRDs.</p>
+
+<p>It will be fascinating to see how Ingress evolves in the not too distant future.</p>
+
+<h2 id="demo-time">Demo Time</h2>
+
+<p>I find it helpful to see some code to make concepts more concrete, so let’s run through a few examples of Ingress and
+beyond.</p>
+
+<p>For this example, I’m going to use a Kubernetes service created from <a href="https://jsonplaceholder.typicode.com/">https://jsonplaceholder.typicode.com/</a>, which
+provides a quick set of REST APIs that provide different JSON output that can be helpful for testing. It’s based on
+a Node.js <a href="https://github.com/typicode/json-server">json-server</a> - it’s very cool and worth looking at independently. I
+forked the original GitHub <a href="https://github.com/typicode/jsonplaceholder">jsonplaceholder repository</a>, ran <a href="https://draft.sh/">Draft create</a>
+on the project, and made a couple of tweaks to the generated <a href="https://helm.sh/">Helm</a> chart. Draft is a super fast and easy way
+to bootstrap existing code into Kubernetes. I’m running all of this locally using <a href="https://kubernetes.io/docs/setup/minikube/">minikube</a>.</p>
+
+<p>The jsonplaceholder service comes with six common resources each of which returns several JSON objects. For this
+example, we’ll be getting the first user resource at <code class="highlighter-rouge">/users/1</code>.</p>
+
+<ul>
+  <li><code class="highlighter-rouge">/posts</code>	100 posts</li>
+  <li><code class="highlighter-rouge">/comments</code>	500 comments</li>
+  <li><code class="highlighter-rouge">/albums</code>	100 albums</li>
+  <li><code class="highlighter-rouge">/photos</code>	5000 photos</li>
+  <li><code class="highlighter-rouge">/todos</code>	200 todos</li>
+  <li><code class="highlighter-rouge">/users</code>	10 users</li>
+</ul>
+
+<p>Following is the script to try this example yourself, and there’s also an <a href="https://asciinema.org/">asciinema</a> playback so you can see
+what it looks like running on my machine (playback is sped up). We’ll unpack what’s happening following the playback.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># Install tooling</span>
+brew update
+brew cask <span class="nb">install </span>minikube
+brew <span class="nb">install </span>kubernetes-cli <span class="se">\</span>
+  kubernetes-helm <span class="se">\</span>
+  azure/draft/draft <span class="se">\</span>
+  glooctl
+
+<span class="c"># Create and set up local Kubernetes Cluster</span>
+minikube start
+helm init
+draft init
+glooctl <span class="nb">install </span>ingress
+
+<span class="c"># Draft runs better locally if you configure</span>
+<span class="c"># against minikube docker daemon</span>
+<span class="nb">eval</span> <span class="k">$(</span>minikube docker-env<span class="k">)</span>
+
+<span class="c"># Get and run the example</span>
+git clone https://github.com/scranton/jsonplaceholder.git
+<span class="nb">cd </span>jsonplaceholder
+draft up
+
+<span class="c"># Validate all is running</span>
+kubectl get all <span class="nt">--namespace</span> default
+kubectl get all <span class="nt">--namespace</span> gloo-system
+kubectl get ingress <span class="nt">--namespace</span> default
+curl <span class="nt">--header</span> <span class="s2">"Host: gloo.example.com"</span> <span class="se">\</span>
+  <span class="k">$(</span>glooctl proxy url <span class="nt">--name</span> ingress-proxy<span class="k">)</span>/users/1
+</code></pre></div></div>
+
+<script id="asciicast-JjLna1ONZiGmQeYrJhP4oNcS5" src="https://asciinema.org/a/JjLna1ONZiGmQeYrJhP4oNcS5.js" data-speed="3" data-rows="32" data-cols="80" async=""></script>
+
+<h2 id="what-happened">What Happened?</h2>
+
+<p>We installed local tooling (you can check respective websites for full install details)</p>
+
+<ul>
+  <li><a href="https://kubernetes.io/docs/setup/minikube/">minikube</a></li>
+  <li><a href="https://kubernetes.io/docs/tasks/tools/install-kubectl/">kubectl</a></li>
+  <li><a href="https://helm.sh/">Helm</a></li>
+  <li><a href="https://draft.sh/">Draft</a></li>
+  <li><a href="https://gloo.solo.io">Gloo</a></li>
+</ul>
+
+<p>We then started up a local Kubernetes cluster (minikube) and initialized Helm and Draft. We also installed
+<a href="https://gloo.solo.io/user_guides/basic_ingress/">Gloo ingress</a> into our local cluster.</p>
+
+<p>We then <code class="highlighter-rouge">git clone</code> our example up and used <code class="highlighter-rouge">draft up</code> to build and deploy it to our cluster. Let’s spend a minute on
+what happened in this step. I originally forked the <code class="highlighter-rouge">jsonplaceholder</code> GitHub repository and ran <code class="highlighter-rouge">draft create</code> against
+its code. Draft autodetects the source code language, in this case, Node.js, and create both a <code class="highlighter-rouge">Dockerfile</code> that builds
+our example application into an image container and creates a default Helm chart. I then made a few minor tweaks to the
+Helm chart to enable its Ingress. Let’s look at that Ingress manifest. The main changes are the addition of the
+<code class="highlighter-rouge">ingress.class: gloo</code> annotation to mark this Ingress for Gloo’s Ingress Controller. And the host is set to
+<code class="highlighter-rouge">gloo.example.com</code>, which is why our curl statement set <code class="highlighter-rouge">curl --header "Host: gloo.example.com"</code>.</p>
+
+<figure>
+
+<figure class="highlight"><pre><code class="language-yaml" data-lang="yaml"><span class="pi"></span>
+<span class="na">apiVersion</span><span class="pi">:</span> <span class="s">extensions/v1beta1</span>
+<span class="na">kind</span><span class="pi">:</span> <span class="s">Ingress</span>
+<span class="na">metadata</span><span class="pi">:</span>
+  <span class="na">name</span><span class="pi">:</span> <span class="pi"></span>
+  <span class="na">labels</span><span class="pi">:</span>
+    <span class="na">chart</span><span class="pi">:</span> <span class="s2">"</span><span class="s">-"</span>
+  <span class="na">annotations</span><span class="pi">:</span>
+    <span class="s">kubernetes.io/ingress.class</span><span class="pi">:</span> <span class="pi"></span>
+<span class="na">spec</span><span class="pi">:</span>
+  <span class="na">rules</span><span class="pi">:</span>
+  <span class="pi">-</span> <span class="na">host</span><span class="pi">:</span> <span class="pi"></span>
+    <span class="na">http</span><span class="pi">:</span>
+      <span class="na">paths</span><span class="pi">:</span>
+      <span class="pi">-</span> <span class="na">path</span><span class="pi">:</span> <span class="s">/.*</span>
+        <span class="na">backend</span><span class="pi">:</span>
+          <span class="na">serviceName</span><span class="pi">:</span> <span class="pi"></span>
+          <span class="na">servicePort</span><span class="pi">:</span> <span class="pi"></span>
+<span class="pi"></span></code></pre></figure>
+
+  <figcaption>charts/template/ingress.yaml</figcaption>
+</figure>
+
+<p>For more examples of using Gloo as an basic Ingress controller you can check out
+<a href="https://scott.cranton.com/kubernetes-ingress-controlling-with-gloo.html">Kubernetes Ingress Control using Gloo</a>.</p>
+
+<p>You may have also noticed the call to <code class="highlighter-rouge">$(glooctl proxy url --name ingress-proxy)</code> in the curl command. This is needed
+when you’re running in a local environment like minikube, and you need to get the host IP and port of the Gloo proxy
+server. When deployed to a Cloud Provider like Google or AWS, then those environments would associate a static IP and
+allow port 80 (or port 443 for HTTPS) to be used, and that static IP would be registered with a DNS server, i.e., 
+when Gloo is deployed to a cloud-managed Kubernetes you could do <code class="highlighter-rouge">curl http://gloo.example.com/users/1</code>.</p>
+
+<h2 id="ingress-example-challenges">Ingress Example Challenges</h2>
+
+<p>Let’s say we wanted to remap the exiting <code class="highlighter-rouge">/users/1</code> to <code class="highlighter-rouge">/people/1</code> as users are people too. That becomes tricky with
+Ingress manifests as we can set up a second rule for <code class="highlighter-rouge">/people</code>, but we need to rewrite that path to <code class="highlighter-rouge">/users</code> before
+sending to our service as it doesn’t know how to handle requests for <code class="highlighter-rouge">/people</code>. If you were using the NGNIX ingress, you
+could add another annotation <code class="highlighter-rouge">nginx.ingress.kubernetes.io/rewrite-target: /</code>, but now we’re adding implementation
+specific annotations, that is the nginx annotation won’t be recognized by other Ingress Controllers. And annotations
+are a flat name space so adding lots of annotations can get quite messy, which is part of why
+<a href="https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/">Custom Resources (CRD)</a> was
+created. Let’s see what the original route, and our path re-writing route, would look like in a CRD based Ingress: Gloo.</p>
+
+<h2 id="gloo-virtual-services">Gloo Virtual Services</h2>
+
+<p>Gloo uses a concept called <a href="https://gloo.solo.io/introduction/concepts#virtual-services">Virtual Service</a> that is
+derived from similar ideas in Istio/Envoy and is conceptually equivalent to an Ingress resource. Easiest to show
+you the equivalent of example Ingress we’ve created so far in a Gloo Virtual Service.</p>
+
+<div class="language-yaml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="na">apiVersion</span><span class="pi">:</span> <span class="s">gateway.solo.io/v1</span>
+<span class="na">kind</span><span class="pi">:</span> <span class="s">VirtualService</span>
+<span class="na">metadata</span><span class="pi">:</span>
+  <span class="na">name</span><span class="pi">:</span> <span class="s">default</span>
+  <span class="na">namespace</span><span class="pi">:</span> <span class="s">gloo-system</span>
+<span class="na">spec</span><span class="pi">:</span>
+  <span class="na">virtualHost</span><span class="pi">:</span>
+    <span class="na">domains</span><span class="pi">:</span>
+    <span class="pi">-</span> <span class="s">gloo.example.com</span>
+    <span class="na">routes</span><span class="pi">:</span>
+    <span class="pi">-</span> <span class="na">matcher</span><span class="pi">:</span>
+        <span class="na">prefix</span><span class="pi">:</span> <span class="s">/</span>
+      <span class="na">routeAction</span><span class="pi">:</span>
+        <span class="na">single</span><span class="pi">:</span>
+          <span class="na">upstream</span><span class="pi">:</span>
+            <span class="na">name</span><span class="pi">:</span> <span class="s">default-jsonplaceholder-jsonplaceholder-8080</span>
+            <span class="na">namespace</span><span class="pi">:</span> <span class="s">gloo-system</span>
+</code></pre></div></div>
+
+<p>You’ll notice that it looks very similar to the Ingress we had previously created with a few subtle changes. The path
+specifier is <code class="highlighter-rouge">prefix: /</code> which is generally what people intend, i.e., if the beginning of the request message path
+matches the route path specifier than apply the route actions. If we wanted to exactly match the previous Ingress, we could use
+<code class="highlighter-rouge">regex: /.*</code> instead. Virtual Services allow you to specify paths by: prefix, exact, and regular expression. You can
+also see that instead of <code class="highlighter-rouge">backend:</code> with <code class="highlighter-rouge">serviceName</code> and <code class="highlighter-rouge">servicePort</code>, a Virtual Service has a <code class="highlighter-rouge">routeAction</code> that
+delegates to a <code class="highlighter-rouge">single</code> <code class="highlighter-rouge">upstream</code>. Gloo upstreams are auto-discovered and can refer to Kubernetes Services AND
+REST/gRPC function, cloud functions like AWS Lambda and Google Functions, and other external to Kubernetes services.</p>
+
+<p>More details on Gloo at:</p>
+
+<ul>
+  <li><a href="https://medium.com/solo-io/routing-with-gloo-function-gateway-301765bb103e">Routing with Gloo Function Gateway</a></li>
+  <li><a href="https://medium.com/solo-io/5-minutes-with-gloo-the-anatomy-of-a-virtualservice-4deb4cfc558e">5 minutes with Gloo - The Anatomy of a VirtualService</a></li>
+</ul>
+
+<p>Let’s go back to our example, and update our Virtual Service to do the path rewrite we wanted, i.e., <code class="highlighter-rouge">/people</code> =&gt; <code class="highlighter-rouge">/users</code></p>
+
+<div class="language-yaml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="na">apiVersion</span><span class="pi">:</span> <span class="s">gateway.solo.io/v1</span>
+<span class="na">kind</span><span class="pi">:</span> <span class="s">VirtualService</span>
+<span class="na">metadata</span><span class="pi">:</span>
+  <span class="na">name</span><span class="pi">:</span> <span class="s">default</span>
+  <span class="na">namespace</span><span class="pi">:</span> <span class="s">gloo-system</span>
+<span class="na">spec</span><span class="pi">:</span>
+  <span class="na">virtualHost</span><span class="pi">:</span>
+    <span class="na">domains</span><span class="pi">:</span>
+    <span class="pi">-</span> <span class="s">gloo.example.com</span>
+    <span class="na">routes</span><span class="pi">:</span>
+    <span class="pi">-</span> <span class="na">matcher</span><span class="pi">:</span>
+        <span class="na">prefix</span><span class="pi">:</span> <span class="s">/people</span>
+      <span class="na">routeAction</span><span class="pi">:</span>
+        <span class="na">single</span><span class="pi">:</span>
+          <span class="na">upstream</span><span class="pi">:</span>
+            <span class="na">name</span><span class="pi">:</span> <span class="s">default-jsonplaceholder-jsonplaceholder-8080</span>
+            <span class="na">namespace</span><span class="pi">:</span> <span class="s">gloo-system</span>
+      <span class="na">routePlugins</span><span class="pi">:</span>
+        <span class="na">prefixRewrite</span><span class="pi">:</span>
+          <span class="na">prefixRewrite</span><span class="pi">:</span> <span class="s">/users</span>
+    <span class="pi">-</span> <span class="na">matcher</span><span class="pi">:</span>
+        <span class="na">prefix</span><span class="pi">:</span> <span class="s">/</span>
+      <span class="na">routeAction</span><span class="pi">:</span>
+        <span class="na">single</span><span class="pi">:</span>
+          <span class="na">upstream</span><span class="pi">:</span>
+            <span class="na">name</span><span class="pi">:</span> <span class="s">default-jsonplaceholder-jsonplaceholder-8080</span>
+            <span class="na">namespace</span><span class="pi">:</span> <span class="s">gloo-system</span>
+</code></pre></div></div>
+
+<p>We’ve added a second route matcher, just like adding a second route path in an Ingress, and specified <code class="highlighter-rouge">prefix: /people</code>.
+This will match all requests that start with <code class="highlighter-rouge">/people</code>, and all other calls to the <code class="highlighter-rouge">gloo.example.com</code> domain will be
+handled by the other route matcher. We also added a <code class="highlighter-rouge">routePlugins</code> section that will rewrite the request path to <code class="highlighter-rouge">/users</code> such
+that our service will now correctly handle our request. <a href="https://gloo.solo.io/user_guides/advanced_route_plugins/">Route Plugins</a>
+allow you to perform many operations on both the request to the upstream service and the response back from the upstream
+service. Best shown with an example, so for our new <code class="highlighter-rouge">/people</code> route let’s also transform the response to both add
+a new header <code class="highlighter-rouge">x-test-phone</code> with a value from the response body, and let’s transform the response body to return a
+couple of fields: name, and the address/street and address/city.</p>
+
+<figure class="highlight"><pre><code class="language-yaml" data-lang="yaml"><span class="na">piVersion</span><span class="pi">:</span> <span class="s">gateway.solo.io/v1</span>
+<span class="na">kind</span><span class="pi">:</span> <span class="s">VirtualService</span>
+<span class="na">metadata</span><span class="pi">:</span>
+  <span class="na">creationTimestamp</span><span class="pi">:</span> <span class="s2">"</span><span class="s">2019-04-08T21:43:45Z"</span>
+  <span class="na">generation</span><span class="pi">:</span> <span class="s">1</span>
+  <span class="na">name</span><span class="pi">:</span> <span class="s">default</span>
+  <span class="na">namespace</span><span class="pi">:</span> <span class="s">gloo-system</span>
+  <span class="na">resourceVersion</span><span class="pi">:</span> <span class="s2">"</span><span class="s">772"</span>
+  <span class="na">selfLink</span><span class="pi">:</span> <span class="s">/apis/gateway.solo.io/v1/namespaces/gloo-system/virtualservices/default</span>
+  <span class="na">uid</span><span class="pi">:</span> <span class="s">6267ee31-5a47-11e9-bc30-867df7be8a8a</span>
+<span class="na">spec</span><span class="pi">:</span>
+  <span class="na">virtualHost</span><span class="pi">:</span>
+    <span class="na">domains</span><span class="pi">:</span>
+    <span class="pi">-</span> <span class="s">gloo.example.com</span>
+    <span class="na">routes</span><span class="pi">:</span>
+    <span class="pi">-</span> <span class="na">matcher</span><span class="pi">:</span>
+        <span class="na">prefix</span><span class="pi">:</span> <span class="s">/people</span>
+      <span class="na">routeAction</span><span class="pi">:</span>
+        <span class="na">single</span><span class="pi">:</span>
+          <span class="na">upstream</span><span class="pi">:</span>
+            <span class="na">name</span><span class="pi">:</span> <span class="s">default-jsonplaceholder-jsonplaceholder-8080</span>
+            <span class="na">namespace</span><span class="pi">:</span> <span class="s">gloo-system</span>
+      <span class="na">routePlugins</span><span class="pi">:</span>
+        <span class="na">prefixRewrite</span><span class="pi">:</span>
+          <span class="na">prefixRewrite</span><span class="pi">:</span> <span class="s">/users</span>
+        <span class="na">transformations</span><span class="pi">:</span>
+          <span class="na">responseTransformation</span><span class="pi">:</span>
+            <span class="na">transformation_template</span><span class="pi">:</span>
+              <span class="na">body</span><span class="pi">:</span>
+                <span class="na">text</span><span class="pi">:</span> <span class="s1">'</span><span class="s">{</span><span class="nv"> </span><span class="s">"name":</span><span class="nv"> </span><span class="s">"",</span><span class="nv"> </span><span class="s">"address":</span>
+                  <span class="s">{</span><span class="nv"> </span><span class="s">"street":</span><span class="nv"> </span><span class="s">"",</span>
+                    <span class="s">"city":</span><span class="nv"> </span><span class="s">""</span><span class="nv"> </span><span class="s">}</span><span class="nv"> </span><span class="s">}'</span>
+              <span class="na">headers</span><span class="pi">:</span>
+                <span class="na">x-test-phone</span><span class="pi">:</span>
+                  <span class="na">text</span><span class="pi">:</span> <span class="s1">'</span><span class="s">'</span>
+    <span class="pi">-</span> <span class="na">matcher</span><span class="pi">:</span>
+        <span class="na">prefix</span><span class="pi">:</span> <span class="s">/</span>
+      <span class="na">routeAction</span><span class="pi">:</span>
+        <span class="na">single</span><span class="pi">:</span>
+          <span class="na">upstream</span><span class="pi">:</span>
+            <span class="na">name</span><span class="pi">:</span> <span class="s">default-jsonplaceholder-jsonplaceholder-8080</span>
+            <span class="na">namespace</span><span class="pi">:</span> <span class="s">gloo-system</span></code></pre></figure>
+
+<p>Let’s see what that looks like. My example GitHub repository already included
+the full Gloo Virtual Service we just examined. We need to configure Gloo for
+<code class="highlighter-rouge">gateway</code> which means adding another proxy to handle Virtual Services in
+addition to Ingress resources. We’ll use <code class="highlighter-rouge">draft up</code> to ensure our example is
+fully deployed including the full Virtual Service, and then we’ll call both
+<code class="highlighter-rouge">/users/1</code> and <code class="highlighter-rouge">/people/1</code> to see the differences.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># Install Gloo and update example</span>
+glooctl <span class="nb">install </span>gateway
+draft up
+
+<span class="c"># Call service</span>
+curl <span class="nt">--verbose</span> <span class="nt">--header</span> <span class="s2">"Host: gloo.example.com"</span> <span class="se">\</span>
+  <span class="k">$(</span>glooctl proxy url <span class="nt">--name</span> gateway-proxy<span class="k">)</span>/users/1
+
+curl <span class="nt">--verbose</span> <span class="nt">--header</span> <span class="s2">"Host: gloo.example.com"</span> <span class="se">\</span>
+  <span class="k">$(</span>glooctl proxy url <span class="nt">--name</span> gateway-proxy<span class="k">)</span>/people/1
+</code></pre></div></div>
+
+<script id="asciicast-5DXyvz6bOmd6zTjayKJ4kjZlB" src="https://asciinema.org/a/5DXyvz6bOmd6zTjayKJ4kjZlB.js" data-speed="3" data-rows="32" data-cols="80" async=""></script>
+
+<p><img src="/assets/mind_blown.png" alt="Mind Blown" style="width: 75px;" class="aligncenter" /></p>
+
+<p>Ok, well not that mind-blowing if you’ve used other L7 networking products or done other integration work, but still
+pretty cool relative to standard Ingress objects. Gloo is using Inja Templates to process the JSON response body.
+More details in the <a href="https://gloo.solo.io/user_guides/advanced_route_plugins#transformation_template">Gloo documentation</a>.</p>
+
+<h1 id="summary">Summary</h1>
+
+<p>In this article, we touched on some of the history and difficulties with the existing Kubernetes Ingress resources. Ingress
+resources continue to play a role within Kubernetes deployments despite the many challenges that annotation-based
+extensions have. Kubernetes Custom Resources (CRDs) was created to address some of those extension challenges and
+can provide a cleaner way to extend Kubernetes as you saw in the Gloo Ingress and Gateway examples. I’m a big believer
+in the potential of Envoy based solutions as are others in the Istio and Contour communities, and it will be exciting
+to see how the Kubernetes community decides to evolve Ingress after they finally move the existing
+resource spec to GA status.</p>
+
+
+                
+                    <p><a href="/ingress_and_beyond.html" role="button">Read More</a></p>
+                
+            </div>
+
+            <footer class="post-footer">
+                <div class="share">Share
+                    <ul class="social-networks">
+                        <li class="share-facebook"><a href="https://www.facebook.com/sharer.php?s=100&p[title]=Kubernetes Ingress Past, Present, and Future&p[summary]=Learn how Knative and Solo.io Gloo work together to support on demand code delivery in Kubernetes.&p[url]=https://scott.cranton.com/ingress_and_beyond.html" class="s_facebook" target="_blank" onclick="window.open(this.href, '','width=700,height=300');return false;"><svg title="" width="16" height="16"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://scott.cranton.com/assets/svg/social-icons.svg#facebook-icon"></use></svg></a></a></li>
+                        <li class="share-twitter"><a href="http://twitter.com/share?url=https://scott.cranton.com/ingress_and_beyond.html&text=Learn how Knative and Solo.io Gloo work together to support on demand code delivery in Kubernetes.&hashtags=Gloo,Ingress,Kubernetes," rel="noreferrer" target="_blank" onclick="window.open(this.href, '','width=700,height=300');return false;"><svg title="" width="16" height="16"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://scott.cranton.com/assets/svg/social-icons.svg#twitter-icon"></use></svg></a></li>
+                    </ul>
+                </div>
+                
+                <div class="tags">
+                    <ul>
+                        
+                        <li><a href="https://scott.cranton.com/tag/Gloo">Gloo</a></li>
+                        
+                        <li><a href="https://scott.cranton.com/tag/Ingress">Ingress</a></li>
+                        
+                        <li><a href="https://scott.cranton.com/tag/Kubernetes">Kubernetes</a></li>
+                        
+                    </ul>
+                </div>
+                
+            </footer>
+        </article>
+        
+    
+        
+    
+        
+    
+
+    
+        
+        <article class="post" role="article" itemscope itemtype="http://schema.org/BlogPosting">
+            <header class="post-header">
+                <ul>
                     <li><time datetime="2019-04-02T15:28:31-04:00" itemprop="datePublished">2 Apr, 2019</time></li>
                     
                 </ul>
@@ -760,7 +1178,7 @@ curl <span class="k">${</span><span class="nv">PROXY_URL</span><span class="k">}
 <div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>curl <span class="k">${</span><span class="nv">PROXY_URL</span><span class="k">}</span>/findPetWithId/3
 </code></pre></div></div>
 
-<div class="language-json highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">{</span><span class="s2">"code"</span><span class="p">:</span><span class="mi">404</span><span class="p">,</span><span class="s2">"message"</span><span class="p">:</span><span class="s2">"not found: pet 3"</span><span class="p">}</span><span class="w">                                                                                                                                                                                             
+<div class="language-json highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">{</span><span class="s2">"code"</span><span class="p">:</span><span class="mi">404</span><span class="p">,</span><span class="s2">"message"</span><span class="p">:</span><span class="s2">"not found: pet 3"</span><span class="p">}</span><span class="w">
 </span></code></pre></div></div>
 
 <p>So let’s play with doing a Canary Release with weighted destinations to migrate the <code class="highlighter-rouge">findPetWithId</code> function.</p>

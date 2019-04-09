@@ -74,6 +74,8 @@ paginate_path: "/page:num/"
 markdown: kramdown
 excerpt_separator: <!--more-->
 
+highlighter: rouge
+
 # Assets Settings
 sass:
   sass_dir: assets/partials
