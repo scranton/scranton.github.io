@@ -168,6 +168,10 @@
             
                 
             
+                
+            
+                
+            
         </div>
         
     
@@ -198,6 +202,245 @@
 
 
                 
+<article class="post" role="article" itemscope itemtype="http://schema.org/BlogPosting">
+    <header class="post-header">
+        <ul>
+            <li><time datetime="2019-05-06T13:51:24-04:00" itemprop="datePublished">6 May, 2019</time></li>
+            
+        </ul>
+        <h2 itemprop="name headline"><a href="https://scott.cranton.com/flagger_and_supergloo.html">SuperGloo to the Rescue! Making it easier to write applications for Service Meshes.</a></h2>
+    </header>
+
+    <div class="post-content">
+        <p><img src="/assets/supergloo.png" alt="SuperGloo" title="SuperGloo" style="width:50%;" /></p>
+
+<!--
+<figure class="aligncenter">
+    <img src="https://images.unsplash.com/photo-1531907700752-62799b2a3e84?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80"/>
+    <figcaption>Photo by <a href="https://unsplash.com/@tkristin" target="_blank">TK Hammonds</a>.</figcaption>
+</figure>
+-->
+
+<h1 id="overview">Overview</h1>
+
+<p>SuperGloo is a new open source project that helps with managing service meshes at scale. SuperGloo provides
+an opinionated abstraction layer that simplifies the installation, management, and operations of one or more service
+meshes like <a href="https://istio.io/">Istio</a>, <a href="https://aws.amazon.com/app-mesh/">AWS App Mesh</a>, <a href="https://linkerd.io/">Linkerd</a>
+and <a href="https://www.consul.io/">HashiCorp Consul</a>. Supports on-site, in the cloud or any combination you need.</p>
+
+<p><img src="/assets/supergloo_architecture.png" alt="SuperGloo Architecture" title="SuperGloo Architecture" style="padding-top: 50px; padding-bottom: 50px;" /></p>
+
+<p>There are a growing number of articles on why SuperGloo, like <a href="https://blog.christianposta.com/">Christian Posta’s</a>
+<a href="https://medium.com/solo-io/solo-io-streamlines-service-mesh-and-serverless-adoption-for-enterprises-in-google-cloud-c93b8aa04d81">“Solo.io Streamlines Service Mesh and Serverless Adoption for Enterprises in Google Cloud”</a>.
+This article is going to focus on how SuperGloo can help software packages like <a href="https://github.com/weaveworks/flagger">Weaveworks Flagger</a>
+work on multiple Services Meshes like Istio and AWS App Mesh that both support traffic shifting.</p>
+
+<p>Flagger is a cool open source project that automates the promotion of Canary deployments of your Kubernetes services.
+You associate a Flagger Canary Kubernetes custom resource (CRD) with your deployment and Flagger follows your defined
+rules for helping roll out a new version. It detects when a new version of your service has deployed, instantiating your
+new version in parallel to your existing version, slowly shifting request traffic between the two versions, and using
+your defined Prometheus metric health checks to determine if Flagger should continue moving more traffic to the new
+version or roll back to the old version. Since a Canary CRD is a YAML file, this provides you a
+declarative way to ensure that all of your service upgrades follow your prescribed sophisticated rollout strategy and
+complements GitOps pipelines used in <a href="https://github.com/weaveworks/flux">Weave Flux</a> and <a href="https://jenkins-x.io/">JenkinsX</a>.</p>
+
+<p>More information on what Canary deployments and Traffic Shifting are is in the following posts. <a href="https://gloo.solo.io">Gloo</a>
+uses the same underlying data plane technology - <a href="https://www.envoyproxy.io/">Envoy</a> - as Istio to provide traffic shifting capabilities used by
+Flagger and Knative. Gloo is an API/Function gateway and not a full Service Mesh, so Gloo can be used in use cases that
+do not require all of the power, and weight, of full service mesh implementations.</p>
+
+<ul>
+  <li><a href="/canary-deployments-with-weighted-routes.html">Canary Deployments with Gloo Function Gateway using Weighted Destinations</a></li>
+  <li><a href="/knative-and-gloo.html">Automating your Services with Knative and Solo.io Gloo</a></li>
+  <li><a href="https://jenkins-x.io/developing/knative/">Jenkins X Serverless Apps</a></li>
+</ul>
+
+<p>This article quickly runs through setting up the Flagger <code class="highlighter-rouge">podinfo</code> example application on SuperGloo with Istio so
+you all can see what’s involved and try yourselves if you like.</p>
+
+<h2 id="install-kubernetes-and-helm">Install Kubernetes and Helm</h2>
+
+<p>The first step on our journey is to get a basic local Kubernetes cluster running. My friend <a href="https://twitter.com/christianh814">Christian Hernandez</a>
+clued me in on <a href="https://kind.sigs.k8s.io/">kind (Kubernetes IN Docker)</a> from the Kubernetes sig-testing team. It’s a fast,
+lightweight way to spin up/down a local cluster assuming you have a locally running copy of Docker, e.g., Docker Desktop.
+This example works equally well in <code class="highlighter-rouge">minikube</code> if you prefer. The following code does the basics you need for most
+Kubernetes clusters.</p>
+
+<ul>
+  <li>Creates a <code class="highlighter-rouge">kind</code> cluster with one control plane node and one worker node</li>
+  <li>Configures the <code class="highlighter-rouge">KUBECONFIG</code> as <code class="highlighter-rouge">kind</code> creates a separate kubeconfig file for each <code class="highlighter-rouge">kind</code> cluster</li>
+  <li>Installs Helm and Tiller with a service account for Tiller</li>
+</ul>
+
+<noscript><pre>400: Invalid request
+</pre></noscript>
+<script src="https://gist.github.com/798ced2125eedb4a93c2df65526a9359.js?file=create_cluster.sh"> </script>
+
+<h2 id="install-supergloo-and-supergloo-installs-and-configures-istio">Install SuperGloo and SuperGloo installs and configures Istio</h2>
+
+<p>Here’s where the magic happens so let’s spend a little time teasing out all the things that are happening due to these
+few lines of code.</p>
+
+<noscript><pre>400: Invalid request
+</pre></noscript>
+<script src="https://gist.github.com/798ced2125eedb4a93c2df65526a9359.js?file=install_supergloo.sh"> </script>
+
+<p>The first command <code class="highlighter-rouge">supergloo init</code> installs SuperGloo into your Kubernetes cluster that is equivalent to using Helm
+to install SuperGloo.</p>
+
+<noscript><pre>400: Invalid request
+</pre></noscript>
+<script src="https://gist.github.com/798ced2125eedb4a93c2df65526a9359.js?file=install_supergloo_helm.sh"> </script>
+
+<p>The second command <code class="highlighter-rouge">kubectl --namespace supergloo-system rollout status deployment/supergloo --watch=true</code> is a hack
+to wait till the SuperGloo deployment is fully deployed and running. It’s similar to using the <code class="highlighter-rouge">--wait</code> option on a
+Helm install.</p>
+
+<p>The <code class="highlighter-rouge">supergloo install istio ...</code> command declares a custom resource and the SuperGloo controller installs and
+configures Istio as declared. In this case, we are installing Istio version 1.0.6 with Istio’s Prometheus installation and
+with Istio deploying sidecars in all pods within namespaces with the label <code class="highlighter-rouge">istio-injection=enabled</code>, i.e., <a href="kubectl --namespace supergloo-system rollout status deployment/supergloo --watch=true">Istio’s
+default behavior for auto-injecting sidecars</a>. This imperative <code class="highlighter-rouge">supergloo install istio</code> command creates the following manifest that you could <code class="highlighter-rouge">kubectl apply</code>
+if you prefer. Refer to the full <a href="https://supergloo.solo.io/v1/github.com/solo-io/supergloo/api/v1/install.proto.sk#istioinstall"><code class="highlighter-rouge">Install</code></a>
+specification for more details.</p>
+
+<noscript><pre>400: Invalid request
+</pre></noscript>
+<script src="https://gist.github.com/798ced2125eedb4a93c2df65526a9359.js?file=supergloo-install.yaml"> </script>
+
+<h2 id="install-flagger">Install Flagger</h2>
+
+<p>The following install Flagger and its dependent parts. The following is a quick summary of installing Flagger. More
+details at <a href="https://docs.flagger.app/">Flagger Doc Site</a>.</p>
+
+<ol>
+  <li>Add a reference to Flagger helm repo</li>
+  <li>Wait for Tiller to be fully running. Only an issue for quick scripts that create Kubernetes clusters from scratch</li>
+  <li>Create a cluster role binding that allows Flagger to modify SuperGloo/Istio resources</li>
+  <li>Install core Flagger referencing Istio’s provided Prometheus and telling Flagger that SuperGloo is the mesh controller</li>
+  <li>Install Flagger’s Grafana dashboards which are not used as part of this demo</li>
+  <li>Install Flagger’s LoadTester which can help generate test traffic during a Canary deployment if there is not enough
+user traffic</li>
+</ol>
+
+<noscript><pre>400: Invalid request
+</pre></noscript>
+<script src="https://gist.github.com/798ced2125eedb4a93c2df65526a9359.js?file=install_flagger.sh"> </script>
+
+<h2 id="install-flagger-example-application">Install Flagger example application</h2>
+
+<p>The example application <a href="https://github.com/stefanprodan/k8s-podinfo"><code class="highlighter-rouge">podinfo</code></a> is a simple golang web application.
+It is instrumented with Prometheus so we can tell if it’s performing well (or not) that helps with our Canary
+deployment to validate that the new version is handling incoming traffic. The example application also has hooks
+to allow you to generate faults if you want to explicitly fail a deployment to see how the Flagger Canary handles that
+situation. Full details on the options around the Flagger example application are <a href="https://docs.flagger.app/usage/progressive-delivery">here</a>.
+The following is the summary of installation steps.</p>
+
+<ol>
+  <li>Install a <code class="highlighter-rouge">test</code> namespace, the example Kubernetes Deployment manifest and an (optional) horizontal pod autoscaler</li>
+  <li>Deploy the Canary policy for the example application. More details on that in a moment</li>
+  <li>Wait for the Canary controller to report that it’s fully ready, which means Istio and Flagger are fully deployed and
+running</li>
+</ol>
+
+<noscript><pre>400: Invalid request
+</pre></noscript>
+<script src="https://gist.github.com/798ced2125eedb4a93c2df65526a9359.js?file=install_example.sh"> </script>
+
+<p>The Canary manifest has a target reference that associates it with the podinfo deployment. The Canary analysis says that
+for every <code class="highlighter-rouge">interval</code> (1 minute) Flagger increment by <code class="highlighter-rouge">stepWeight</code> (10%) more request traffic to the new version up to
+<code class="highlighter-rouge">maxWeight</code> (50%) as long as the <code class="highlighter-rouge">metrics</code> stay within the defined healthy ranges. If more than <code class="highlighter-rouge">threshold</code> (5) health
+checks fail, then rollback to 100% of traffic to the old version and delete the new version deployment. There is also
+an optional section to allow the Flagger loadtester to generate additional traffic to help validate the new Canary
+version, i.e., hard to know if the new version works if it has not handled any requests.</p>
+
+<noscript><pre>400: Invalid request
+</pre></noscript>
+<script src="https://gist.github.com/798ced2125eedb4a93c2df65526a9359.js?file=podinfo-canary.yaml"> </script>
+
+<h2 id="deploy-a-new-image-version-and-watch-the-canary-deployment">Deploy a new image version and watch the Canary deployment</h2>
+
+<p>First, we check on the currently deployed image version and print that out to help us verify if the test updates
+the service like we expect; should be <code class="highlighter-rouge">quay.io/stefanprodan/podinfo:1.4.0</code>. Then to help make the changes more visible,
+we trigger a background process to update the image version to <code class="highlighter-rouge">quay.io/stefanprodan/podinfo:1.4.1</code> after a five second
+delay. We then loop and print out the change events for podinfo to see the traffic weight changes until the Canary
+reports Success. You’d need to change this loop if you want to try introducing errors to see the Canary rollback. Lastly,
+we’ll print out the image version which should be <code class="highlighter-rouge">quay.io/stefanprodan/podinfo:1.4.1</code> is everything succeeded.</p>
+
+<noscript><pre>400: Invalid request
+</pre></noscript>
+<script src="https://gist.github.com/798ced2125eedb4a93c2df65526a9359.js?file=update_version.sh"> </script>
+
+<h2 id="cleanup-kubernetes">Cleanup Kubernetes</h2>
+
+<p>The final step is to clean up the Kubernetes cluster, which in our case means to delete the kind cluster by running
+<code class="highlighter-rouge">kind delete cluster</code> and unsetting the <code class="highlighter-rouge">KUBECONFIG</code> environment variable.</p>
+
+<h2 id="everything">Everything</h2>
+
+<p>Here’s an <a href="https://asciinema.org/">Asciinema</a> screen recording of the whole example script running, and afterward you
+can see the whole script if you wanted to try yourself. The Asciinema recorder speeds up any long running commands,
+that is, if a command takes more than two seconds to execute the playback delays up to two seconds. This speedup reduces
+the run time from 15+ minutes to around two minutes.</p>
+
+<script id="asciicast-hUwE6wzhmEkw2KIK74dtNiIfd" src="https://asciinema.org/a/hUwE6wzhmEkw2KIK74dtNiIfd.js" data-rows="32" data-cols="120" async=""></script>
+
+<noscript><pre>400: Invalid request
+</pre></noscript>
+<script src="https://gist.github.com/798ced2125eedb4a93c2df65526a9359.js?file=run_flagger_demo.sh"> </script>
+
+<h1 id="summary">Summary</h1>
+
+<p>Hopefully, this example gave you a taste of how SuperGloo supports a Canary deployment engine like Flagger. Before
+SuperGloo you’d either need to learn how to install all of Istio yourself or be constrained to using a managed Istio or
+App Mesh installation from GKE or AWS respectively. Those are good managed offerings, but they do limit your choices
+to the versions and configurations they currently support.</p>
+
+<p>SuperGloo provides a great abstraction and management layer to help applications leverage one or more Service Meshes
+without needing to get deep into the weeds of the huge API surface area of any one of the meshes like Istio or
+App Mesh. SuperGloo makes it easy for applications to use just what they need of the underlying meshes. That helps
+with adoption on Service Meshes based on the feedback I’ve heard, that is, many are currently experimenting with
+Istio or App Mesh or Linkerd for just on capability, typically traffic shifting or mutual TLS, and they’re finding it
+difficult to manage and configure the whole mesh even though they aren’t using those other capabilities. SuperGloo to
+the rescue to help make it easier to use just the parts of Service Meshes that add value today, and allow you to add
+more as you need it including mixing and matching multiple service meshes easily to get the biggest return on your
+investment.</p>
+
+<p>I strongly encourage you to learn more yourself as its fun to learn new technology, especially tech that helps you solve
+complex challenges and accelerates your ability to deploy larger and more sophisticated systems.</p>
+
+<ul>
+  <li><a href="httsp://supergloo.solo.io">SuperGloo</a></li>
+  <li><a href="https://docs.flagger.app/">Flagger</a></li>
+  <li><a href="https://istio.io">Istio</a></li>
+</ul>
+
+
+        
+    </div>
+
+    <footer class="post-footer">
+        <div class="share">Share
+            <ul class="social-networks">
+                <li class="share-facebook"><a href="https://www.facebook.com/sharer.php?s=100&p[title]=SuperGloo to the Rescue! Making it easier to write applications for Service Meshes.&p[summary]=How SuperGloo abstracts Service Meshes to allow applications to run on one or more Service Meshes like a superhero.&p[url]=https://scott.cranton.com/flagger_and_supergloo.html" class="s_facebook" target="_blank" onclick="window.open(this.href, '','width=700,height=300');return false;"><svg title="" width="16" height="16"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://scott.cranton.com/assets/svg/social-icons.svg#facebook-icon"></use></svg></a></a></li>
+                <li class="share-twitter"><a href="http://twitter.com/share?url=https://scott.cranton.com/flagger_and_supergloo.html&text=How SuperGloo abstracts Service Meshes to allow applications to run on one or more Service Meshes like a superhero.&hashtags=SuperGloo,Service Mesh,Kubernetes," rel="noreferrer" target="_blank" onclick="window.open(this.href, '','width=700,height=300');return false;"><svg title="" width="16" height="16"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://scott.cranton.com/assets/svg/social-icons.svg#twitter-icon"></use></svg></a></li>
+            </ul>
+        </div>
+        
+        <div class="tags">
+            <ul>
+                
+                <li><a href="https://scott.cranton.com/tag/SuperGloo">SuperGloo</a></li>
+                
+                <li><a href="https://scott.cranton.com/tag/Service Mesh">Service Mesh</a></li>
+                
+                <li><a href="https://scott.cranton.com/tag/Kubernetes">Kubernetes</a></li>
+                
+            </ul>
+        </div>
+        
+    </footer>
+</article>
+
 <article class="post" role="article" itemscope itemtype="http://schema.org/BlogPosting">
     <header class="post-header">
         <ul>
@@ -502,7 +745,7 @@ service. Best shown with an example, so for our new <code class="highlighter-rou
 a new header <code class="highlighter-rouge">x-test-phone</code> with a value from the response body, and let’s transform the response body to return a
 couple of fields: name, and the address/street and address/city.</p>
 
-<figure class="highlight"><pre><code class="language-yaml" data-lang="yaml"><span class="na">piVersion</span><span class="pi">:</span> <span class="s">gateway.solo.io/v1</span>
+<figure class="highlight"><pre><code class="language-yaml" data-lang="yaml"><span class="na">apiVersion</span><span class="pi">:</span> <span class="s">gateway.solo.io/v1</span>
 <span class="na">kind</span><span class="pi">:</span> <span class="s">VirtualService</span>
 <span class="na">metadata</span><span class="pi">:</span>
   <span class="na">creationTimestamp</span><span class="pi">:</span> <span class="s2">"</span><span class="s">2019-04-08T21:43:45Z"</span>
@@ -2453,38 +2696,6 @@ space. I’m very excited to be there, especially as I’m getting back hands on
             <ul class="social-networks">
                 <li class="share-facebook"><a href="https://www.facebook.com/sharer.php?s=100&p[title]=I got an article published at JDJ...&p[summary]=&p[url]=https://scott.cranton.com/i-got-article-published-at-jdj.html" class="s_facebook" target="_blank" onclick="window.open(this.href, '','width=700,height=300');return false;"><svg title="" width="16" height="16"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://scott.cranton.com/assets/svg/social-icons.svg#facebook-icon"></use></svg></a></a></li>
                 <li class="share-twitter"><a href="http://twitter.com/share?url=https://scott.cranton.com/i-got-article-published-at-jdj.html&text=&hashtags=" rel="noreferrer" target="_blank" onclick="window.open(this.href, '','width=700,height=300');return false;"><svg title="" width="16" height="16"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://scott.cranton.com/assets/svg/social-icons.svg#twitter-icon"></use></svg></a></li>
-            </ul>
-        </div>
-        
-        <div class="tags">
-            <ul>
-                
-            </ul>
-        </div>
-        
-    </footer>
-</article>
-
-<article class="post" role="article" itemscope itemtype="http://schema.org/BlogPosting">
-    <header class="post-header">
-        <ul>
-            <li><time datetime="2010-11-15T14:24:00-05:00" itemprop="datePublished">15 Nov, 2010</time></li>
-            
-        </ul>
-        <h2 itemprop="name headline"><a href="https://scott.cranton.com/servicemix-4-example-project.html">ServiceMix 4 Example Project</a></h2>
-    </header>
-
-    <div class="post-content">
-        I've just pushed a new version of the "Getting Started with ServiceMix 4" example <a href="http://fusesource.com/resources/video-archived-webinars/">webinar</a> project to GitHub (https://github.com/scranton/servicemix4-example-payment-service). My goal is that this example shows best practices for creating ServiceMix 4 projects with Camel. I'm also experimenting with GitHub…<br /><br />This project is an example of using OSGi, Camel, and ServiceMix together, specifically ServiceMix 4's NMR component. A number of things are shown within this project:<br /> * use of the Camel-NMR component for inter OSGi bundle communication<br /> * dynamic routing combining Camel's recipient list and the OSGi Service Registry<br /> * use of Camel's Content Based Router<br /> * multiple front-end proxies (WS and batch file)<br /> * bridging one way (fire and forget) messaging with request-response<br /> * and much more...<br /><br />The scenario is a payment transfer service where transfer requests can be made either through a WS (SOAP/HTTP) interface or through batch files. These transfer requests are routed to banking services that can come and go at runtime (i.e. new banks can be added and removed at runtime).<br /><br />This solution is a bit over-engineered, but the goal of this effort is to provide examples of best practices in creating applications using these technologies.<br /><br />My plan is over the next few days to post some blog entries on aspects of this project to explain things like: how to communicate between OSGi bundles with Camel, dynamic routing to OSGi bundles that are deployed at runtime, etc. Ultimately I'll get to updating the webinar to talk through this updated code.<br /><br />I'd suggest downloading the 1.0.0 version of this project (https://github.com/scranton/servicemix4-example-payment-service/archives/payment-service-1.0.0) and give it a try with ServiceMix 4.3.0-fuse-02-00 (http://fusesource.com/downloads/). Please feel free to submit ideas for how I could enhance this example; I'm thinking adding in transaction support spanning two bank services would be cool, for example.
-
-        
-    </div>
-
-    <footer class="post-footer">
-        <div class="share">Share
-            <ul class="social-networks">
-                <li class="share-facebook"><a href="https://www.facebook.com/sharer.php?s=100&p[title]=ServiceMix 4 Example Project&p[summary]=&p[url]=https://scott.cranton.com/servicemix-4-example-project.html" class="s_facebook" target="_blank" onclick="window.open(this.href, '','width=700,height=300');return false;"><svg title="" width="16" height="16"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://scott.cranton.com/assets/svg/social-icons.svg#facebook-icon"></use></svg></a></a></li>
-                <li class="share-twitter"><a href="http://twitter.com/share?url=https://scott.cranton.com/servicemix-4-example-project.html&text=&hashtags=" rel="noreferrer" target="_blank" onclick="window.open(this.href, '','width=700,height=300');return false;"><svg title="" width="16" height="16"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://scott.cranton.com/assets/svg/social-icons.svg#twitter-icon"></use></svg></a></li>
             </ul>
         </div>
         
