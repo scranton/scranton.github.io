@@ -305,7 +305,7 @@ couple of fields: name, and the address/street and address/city.
 
 {% highlight yaml %}
 {% raw %}
-piVersion: gateway.solo.io/v1
+apiVersion: gateway.solo.io/v1
 kind: VirtualService
 metadata:
   creationTimestamp: "2019-04-08T21:43:45Z"
