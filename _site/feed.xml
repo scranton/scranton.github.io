@@ -5,9 +5,226 @@
     <description>I lead Customer Success at Solo.io. I enjoy hacking tech, and writing about it.</description>
     <link>https://scott.cranton.com/</link>
     <atom:link href="https://scott.cranton.com/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Tue, 09 Apr 2019 13:11:53 -0400</pubDate>
-    <lastBuildDate>Tue, 09 Apr 2019 13:11:53 -0400</lastBuildDate>
-    <generator>Jekyll v3.8.4</generator>
+    <pubDate>Mon, 06 May 2019 19:51:32 -0400</pubDate>
+    <lastBuildDate>Mon, 06 May 2019 19:51:32 -0400</lastBuildDate>
+    <generator>Jekyll v3.8.5</generator>
+    
+      <item>
+        <title>SuperGloo to the Rescue! Making it easier to write applications for Service Meshes.</title>
+        <description>&lt;p&gt;&lt;img src=&quot;/assets/supergloo.png&quot; alt=&quot;SuperGloo&quot; title=&quot;SuperGloo&quot; style=&quot;width:50%;&quot; /&gt;&lt;/p&gt;
+
+&lt;!--
+&lt;figure class=&quot;aligncenter&quot;&gt;
+    &lt;img src=&quot;https://images.unsplash.com/photo-1531907700752-62799b2a3e84?ixlib=rb-1.2.1&amp;auto=format&amp;fit=crop&amp;w=1350&amp;q=80&quot;/&gt;
+    &lt;figcaption&gt;Photo by &lt;a href=&quot;https://unsplash.com/@tkristin&quot; target=&quot;_blank&quot;&gt;TK Hammonds&lt;/a&gt;.&lt;/figcaption&gt;
+&lt;/figure&gt;
+--&gt;
+
+&lt;h1 id=&quot;overview&quot;&gt;Overview&lt;/h1&gt;
+
+&lt;p&gt;SuperGloo is a new open source project that helps with managing service meshes at scale. SuperGloo provides
+an opinionated abstraction layer that simplifies the installation, management, and operations of one or more service
+meshes like &lt;a href=&quot;https://istio.io/&quot;&gt;Istio&lt;/a&gt;, &lt;a href=&quot;https://aws.amazon.com/app-mesh/&quot;&gt;AWS App Mesh&lt;/a&gt;, &lt;a href=&quot;https://linkerd.io/&quot;&gt;Linkerd&lt;/a&gt;
+and &lt;a href=&quot;https://www.consul.io/&quot;&gt;HashiCorp Consul&lt;/a&gt;. Supports on-site, in the cloud or any combination you need.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/supergloo_architecture.png&quot; alt=&quot;SuperGloo Architecture&quot; title=&quot;SuperGloo Architecture&quot; style=&quot;padding-top: 50px; padding-bottom: 50px;&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;There are a growing number of articles on why SuperGloo, like &lt;a href=&quot;https://blog.christianposta.com/&quot;&gt;Christian Posta’s&lt;/a&gt;
+&lt;a href=&quot;https://medium.com/solo-io/solo-io-streamlines-service-mesh-and-serverless-adoption-for-enterprises-in-google-cloud-c93b8aa04d81&quot;&gt;“Solo.io Streamlines Service Mesh and Serverless Adoption for Enterprises in Google Cloud”&lt;/a&gt;.
+This article is going to focus on how SuperGloo can help software packages like &lt;a href=&quot;https://github.com/weaveworks/flagger&quot;&gt;Weaveworks Flagger&lt;/a&gt;
+work on multiple Services Meshes like Istio and AWS App Mesh that both support traffic shifting.&lt;/p&gt;
+
+&lt;p&gt;Flagger is a cool open source project that automates the promotion of Canary deployments of your Kubernetes services.
+You associate a Flagger Canary Kubernetes custom resource (CRD) with your deployment and Flagger follows your defined
+rules for helping roll out a new version. It detects when a new version of your service has deployed, instantiating your
+new version in parallel to your existing version, slowly shifting request traffic between the two versions, and using
+your defined Prometheus metric health checks to determine if Flagger should continue moving more traffic to the new
+version or roll back to the old version. Since a Canary CRD is a YAML file, this provides you a
+declarative way to ensure that all of your service upgrades follow your prescribed sophisticated rollout strategy and
+complements GitOps pipelines used in &lt;a href=&quot;https://github.com/weaveworks/flux&quot;&gt;Weave Flux&lt;/a&gt; and &lt;a href=&quot;https://jenkins-x.io/&quot;&gt;JenkinsX&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;More information on what Canary deployments and Traffic Shifting are is in the following posts. &lt;a href=&quot;https://gloo.solo.io&quot;&gt;Gloo&lt;/a&gt;
+uses the same underlying data plane technology - &lt;a href=&quot;https://www.envoyproxy.io/&quot;&gt;Envoy&lt;/a&gt; - as Istio to provide traffic shifting capabilities used by
+Flagger and Knative. Gloo is an API/Function gateway and not a full Service Mesh, so Gloo can be used in use cases that
+do not require all of the power, and weight, of full service mesh implementations.&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;a href=&quot;/canary-deployments-with-weighted-routes.html&quot;&gt;Canary Deployments with Gloo Function Gateway using Weighted Destinations&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;/knative-and-gloo.html&quot;&gt;Automating your Services with Knative and Solo.io Gloo&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://jenkins-x.io/developing/knative/&quot;&gt;Jenkins X Serverless Apps&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;This article quickly runs through setting up the Flagger &lt;code class=&quot;highlighter-rouge&quot;&gt;podinfo&lt;/code&gt; example application on SuperGloo with Istio so
+you all can see what’s involved and try yourselves if you like.&lt;/p&gt;
+
+&lt;h2 id=&quot;install-kubernetes-and-helm&quot;&gt;Install Kubernetes and Helm&lt;/h2&gt;
+
+&lt;p&gt;The first step on our journey is to get a basic local Kubernetes cluster running. My friend &lt;a href=&quot;https://twitter.com/christianh814&quot;&gt;Christian Hernandez&lt;/a&gt;
+clued me in on &lt;a href=&quot;https://kind.sigs.k8s.io/&quot;&gt;kind (Kubernetes IN Docker)&lt;/a&gt; from the Kubernetes sig-testing team. It’s a fast,
+lightweight way to spin up/down a local cluster assuming you have a locally running copy of Docker, e.g., Docker Desktop.
+This example works equally well in &lt;code class=&quot;highlighter-rouge&quot;&gt;minikube&lt;/code&gt; if you prefer. The following code does the basics you need for most
+Kubernetes clusters.&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;Creates a &lt;code class=&quot;highlighter-rouge&quot;&gt;kind&lt;/code&gt; cluster with one control plane node and one worker node&lt;/li&gt;
+  &lt;li&gt;Configures the &lt;code class=&quot;highlighter-rouge&quot;&gt;KUBECONFIG&lt;/code&gt; as &lt;code class=&quot;highlighter-rouge&quot;&gt;kind&lt;/code&gt; creates a separate kubeconfig file for each &lt;code class=&quot;highlighter-rouge&quot;&gt;kind&lt;/code&gt; cluster&lt;/li&gt;
+  &lt;li&gt;Installs Helm and Tiller with a service account for Tiller&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;noscript&gt;&lt;pre&gt;400: Invalid request
+&lt;/pre&gt;&lt;/noscript&gt;
+&lt;script src=&quot;https://gist.github.com/798ced2125eedb4a93c2df65526a9359.js?file=create_cluster.sh&quot;&gt; &lt;/script&gt;
+
+&lt;h2 id=&quot;install-supergloo-and-supergloo-installs-and-configures-istio&quot;&gt;Install SuperGloo and SuperGloo installs and configures Istio&lt;/h2&gt;
+
+&lt;p&gt;Here’s where the magic happens so let’s spend a little time teasing out all the things that are happening due to these
+few lines of code.&lt;/p&gt;
+
+&lt;noscript&gt;&lt;pre&gt;400: Invalid request
+&lt;/pre&gt;&lt;/noscript&gt;
+&lt;script src=&quot;https://gist.github.com/798ced2125eedb4a93c2df65526a9359.js?file=install_supergloo.sh&quot;&gt; &lt;/script&gt;
+
+&lt;p&gt;The first command &lt;code class=&quot;highlighter-rouge&quot;&gt;supergloo init&lt;/code&gt; installs SuperGloo into your Kubernetes cluster that is equivalent to using Helm
+to install SuperGloo.&lt;/p&gt;
+
+&lt;noscript&gt;&lt;pre&gt;400: Invalid request
+&lt;/pre&gt;&lt;/noscript&gt;
+&lt;script src=&quot;https://gist.github.com/798ced2125eedb4a93c2df65526a9359.js?file=install_supergloo_helm.sh&quot;&gt; &lt;/script&gt;
+
+&lt;p&gt;The second command &lt;code class=&quot;highlighter-rouge&quot;&gt;kubectl --namespace supergloo-system rollout status deployment/supergloo --watch=true&lt;/code&gt; is a hack
+to wait till the SuperGloo deployment is fully deployed and running. It’s similar to using the &lt;code class=&quot;highlighter-rouge&quot;&gt;--wait&lt;/code&gt; option on a
+Helm install.&lt;/p&gt;
+
+&lt;p&gt;The &lt;code class=&quot;highlighter-rouge&quot;&gt;supergloo install istio ...&lt;/code&gt; command declares a custom resource and the SuperGloo controller installs and
+configures Istio as declared. In this case, we are installing Istio version 1.0.6 with Istio’s Prometheus installation and
+with Istio deploying sidecars in all pods within namespaces with the label &lt;code class=&quot;highlighter-rouge&quot;&gt;istio-injection=enabled&lt;/code&gt;, i.e., &lt;a href=&quot;kubectl --namespace supergloo-system rollout status deployment/supergloo --watch=true&quot;&gt;Istio’s
+default behavior for auto-injecting sidecars&lt;/a&gt;. This imperative &lt;code class=&quot;highlighter-rouge&quot;&gt;supergloo install istio&lt;/code&gt; command creates the following manifest that you could &lt;code class=&quot;highlighter-rouge&quot;&gt;kubectl apply&lt;/code&gt;
+if you prefer. Refer to the full &lt;a href=&quot;https://supergloo.solo.io/v1/github.com/solo-io/supergloo/api/v1/install.proto.sk#istioinstall&quot;&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;Install&lt;/code&gt;&lt;/a&gt;
+specification for more details.&lt;/p&gt;
+
+&lt;noscript&gt;&lt;pre&gt;400: Invalid request
+&lt;/pre&gt;&lt;/noscript&gt;
+&lt;script src=&quot;https://gist.github.com/798ced2125eedb4a93c2df65526a9359.js?file=supergloo-install.yaml&quot;&gt; &lt;/script&gt;
+
+&lt;h2 id=&quot;install-flagger&quot;&gt;Install Flagger&lt;/h2&gt;
+
+&lt;p&gt;The following install Flagger and its dependent parts. The following is a quick summary of installing Flagger. More
+details at &lt;a href=&quot;https://docs.flagger.app/&quot;&gt;Flagger Doc Site&lt;/a&gt;.&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;Add a reference to Flagger helm repo&lt;/li&gt;
+  &lt;li&gt;Wait for Tiller to be fully running. Only an issue for quick scripts that create Kubernetes clusters from scratch&lt;/li&gt;
+  &lt;li&gt;Create a cluster role binding that allows Flagger to modify SuperGloo/Istio resources&lt;/li&gt;
+  &lt;li&gt;Install core Flagger referencing Istio’s provided Prometheus and telling Flagger that SuperGloo is the mesh controller&lt;/li&gt;
+  &lt;li&gt;Install Flagger’s Grafana dashboards which are not used as part of this demo&lt;/li&gt;
+  &lt;li&gt;Install Flagger’s LoadTester which can help generate test traffic during a Canary deployment if there is not enough
+user traffic&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;noscript&gt;&lt;pre&gt;400: Invalid request
+&lt;/pre&gt;&lt;/noscript&gt;
+&lt;script src=&quot;https://gist.github.com/798ced2125eedb4a93c2df65526a9359.js?file=install_flagger.sh&quot;&gt; &lt;/script&gt;
+
+&lt;h2 id=&quot;install-flagger-example-application&quot;&gt;Install Flagger example application&lt;/h2&gt;
+
+&lt;p&gt;The example application &lt;a href=&quot;https://github.com/stefanprodan/k8s-podinfo&quot;&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;podinfo&lt;/code&gt;&lt;/a&gt; is a simple golang web application.
+It is instrumented with Prometheus so we can tell if it’s performing well (or not) that helps with our Canary
+deployment to validate that the new version is handling incoming traffic. The example application also has hooks
+to allow you to generate faults if you want to explicitly fail a deployment to see how the Flagger Canary handles that
+situation. Full details on the options around the Flagger example application are &lt;a href=&quot;https://docs.flagger.app/usage/progressive-delivery&quot;&gt;here&lt;/a&gt;.
+The following is the summary of installation steps.&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;Install a &lt;code class=&quot;highlighter-rouge&quot;&gt;test&lt;/code&gt; namespace, the example Kubernetes Deployment manifest and an (optional) horizontal pod autoscaler&lt;/li&gt;
+  &lt;li&gt;Deploy the Canary policy for the example application. More details on that in a moment&lt;/li&gt;
+  &lt;li&gt;Wait for the Canary controller to report that it’s fully ready, which means Istio and Flagger are fully deployed and
+running&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;noscript&gt;&lt;pre&gt;400: Invalid request
+&lt;/pre&gt;&lt;/noscript&gt;
+&lt;script src=&quot;https://gist.github.com/798ced2125eedb4a93c2df65526a9359.js?file=install_example.sh&quot;&gt; &lt;/script&gt;
+
+&lt;p&gt;The Canary manifest has a target reference that associates it with the podinfo deployment. The Canary analysis says that
+for every &lt;code class=&quot;highlighter-rouge&quot;&gt;interval&lt;/code&gt; (1 minute) Flagger increment by &lt;code class=&quot;highlighter-rouge&quot;&gt;stepWeight&lt;/code&gt; (10%) more request traffic to the new version up to
+&lt;code class=&quot;highlighter-rouge&quot;&gt;maxWeight&lt;/code&gt; (50%) as long as the &lt;code class=&quot;highlighter-rouge&quot;&gt;metrics&lt;/code&gt; stay within the defined healthy ranges. If more than &lt;code class=&quot;highlighter-rouge&quot;&gt;threshold&lt;/code&gt; (5) health
+checks fail, then rollback to 100% of traffic to the old version and delete the new version deployment. There is also
+an optional section to allow the Flagger loadtester to generate additional traffic to help validate the new Canary
+version, i.e., hard to know if the new version works if it has not handled any requests.&lt;/p&gt;
+
+&lt;noscript&gt;&lt;pre&gt;400: Invalid request
+&lt;/pre&gt;&lt;/noscript&gt;
+&lt;script src=&quot;https://gist.github.com/798ced2125eedb4a93c2df65526a9359.js?file=podinfo-canary.yaml&quot;&gt; &lt;/script&gt;
+
+&lt;h2 id=&quot;deploy-a-new-image-version-and-watch-the-canary-deployment&quot;&gt;Deploy a new image version and watch the Canary deployment&lt;/h2&gt;
+
+&lt;p&gt;First, we check on the currently deployed image version and print that out to help us verify if the test updates
+the service like we expect; should be &lt;code class=&quot;highlighter-rouge&quot;&gt;quay.io/stefanprodan/podinfo:1.4.0&lt;/code&gt;. Then to help make the changes more visible,
+we trigger a background process to update the image version to &lt;code class=&quot;highlighter-rouge&quot;&gt;quay.io/stefanprodan/podinfo:1.4.1&lt;/code&gt; after a five second
+delay. We then loop and print out the change events for podinfo to see the traffic weight changes until the Canary
+reports Success. You’d need to change this loop if you want to try introducing errors to see the Canary rollback. Lastly,
+we’ll print out the image version which should be &lt;code class=&quot;highlighter-rouge&quot;&gt;quay.io/stefanprodan/podinfo:1.4.1&lt;/code&gt; is everything succeeded.&lt;/p&gt;
+
+&lt;noscript&gt;&lt;pre&gt;400: Invalid request
+&lt;/pre&gt;&lt;/noscript&gt;
+&lt;script src=&quot;https://gist.github.com/798ced2125eedb4a93c2df65526a9359.js?file=update_version.sh&quot;&gt; &lt;/script&gt;
+
+&lt;h2 id=&quot;cleanup-kubernetes&quot;&gt;Cleanup Kubernetes&lt;/h2&gt;
+
+&lt;p&gt;The final step is to clean up the Kubernetes cluster, which in our case means to delete the kind cluster by running
+&lt;code class=&quot;highlighter-rouge&quot;&gt;kind delete cluster&lt;/code&gt; and unsetting the &lt;code class=&quot;highlighter-rouge&quot;&gt;KUBECONFIG&lt;/code&gt; environment variable.&lt;/p&gt;
+
+&lt;h2 id=&quot;everything&quot;&gt;Everything&lt;/h2&gt;
+
+&lt;p&gt;Here’s an &lt;a href=&quot;https://asciinema.org/&quot;&gt;Asciinema&lt;/a&gt; screen recording of the whole example script running, and afterward you
+can see the whole script if you wanted to try yourself. The Asciinema recorder speeds up any long running commands,
+that is, if a command takes more than two seconds to execute the playback delays up to two seconds. This speedup reduces
+the run time from 15+ minutes to around two minutes.&lt;/p&gt;
+
+&lt;script id=&quot;asciicast-hUwE6wzhmEkw2KIK74dtNiIfd&quot; src=&quot;https://asciinema.org/a/hUwE6wzhmEkw2KIK74dtNiIfd.js&quot; data-rows=&quot;32&quot; data-cols=&quot;120&quot; async=&quot;&quot;&gt;&lt;/script&gt;
+
+&lt;noscript&gt;&lt;pre&gt;400: Invalid request
+&lt;/pre&gt;&lt;/noscript&gt;
+&lt;script src=&quot;https://gist.github.com/798ced2125eedb4a93c2df65526a9359.js?file=run_flagger_demo.sh&quot;&gt; &lt;/script&gt;
+
+&lt;h1 id=&quot;summary&quot;&gt;Summary&lt;/h1&gt;
+
+&lt;p&gt;Hopefully, this example gave you a taste of how SuperGloo supports a Canary deployment engine like Flagger. Before
+SuperGloo you’d either need to learn how to install all of Istio yourself or be constrained to using a managed Istio or
+App Mesh installation from GKE or AWS respectively. Those are good managed offerings, but they do limit your choices
+to the versions and configurations they currently support.&lt;/p&gt;
+
+&lt;p&gt;SuperGloo provides a great abstraction and management layer to help applications leverage one or more Service Meshes
+without needing to get deep into the weeds of the huge API surface area of any one of the meshes like Istio or
+App Mesh. SuperGloo makes it easy for applications to use just what they need of the underlying meshes. That helps
+with adoption on Service Meshes based on the feedback I’ve heard, that is, many are currently experimenting with
+Istio or App Mesh or Linkerd for just on capability, typically traffic shifting or mutual TLS, and they’re finding it
+difficult to manage and configure the whole mesh even though they aren’t using those other capabilities. SuperGloo to
+the rescue to help make it easier to use just the parts of Service Meshes that add value today, and allow you to add
+more as you need it including mixing and matching multiple service meshes easily to get the biggest return on your
+investment.&lt;/p&gt;
+
+&lt;p&gt;I strongly encourage you to learn more yourself as its fun to learn new technology, especially tech that helps you solve
+complex challenges and accelerates your ability to deploy larger and more sophisticated systems.&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;a href=&quot;httsp://supergloo.solo.io&quot;&gt;SuperGloo&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://docs.flagger.app/&quot;&gt;Flagger&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://istio.io&quot;&gt;Istio&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+        <pubDate>Mon, 06 May 2019 13:51:24 -0400</pubDate>
+        <link>https://scott.cranton.com/flagger_and_supergloo.html</link>
+        <guid isPermaLink="true">https://scott.cranton.com/flagger_and_supergloo.html</guid>
+        
+        <category>SuperGloo</category>
+        
+        <category>Service Mesh</category>
+        
+        <category>Kubernetes</category>
+        
+        
+      </item>
     
       <item>
         <title>Kubernetes Ingress Past, Present, and Future</title>
@@ -305,7 +522,7 @@ service. Best shown with an example, so for our new &lt;code class=&quot;highlig
 a new header &lt;code class=&quot;highlighter-rouge&quot;&gt;x-test-phone&lt;/code&gt; with a value from the response body, and let’s transform the response body to return a
 couple of fields: name, and the address/street and address/city.&lt;/p&gt;
 
-&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-yaml&quot; data-lang=&quot;yaml&quot;&gt;&lt;span class=&quot;na&quot;&gt;piVersion&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;gateway.solo.io/v1&lt;/span&gt;
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-yaml&quot; data-lang=&quot;yaml&quot;&gt;&lt;span class=&quot;na&quot;&gt;apiVersion&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;gateway.solo.io/v1&lt;/span&gt;
 &lt;span class=&quot;na&quot;&gt;kind&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;VirtualService&lt;/span&gt;
 &lt;span class=&quot;na&quot;&gt;metadata&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt;
   &lt;span class=&quot;na&quot;&gt;creationTimestamp&lt;/span&gt;&lt;span class=&quot;pi&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;2019-04-08T21:43:45Z&quot;&lt;/span&gt;
@@ -2074,16 +2291,6 @@ space. I’m very excited to be there, especially as I’m getting back hands on
         <pubDate>Wed, 23 Mar 2011 12:14:00 -0400</pubDate>
         <link>https://scott.cranton.com/i-got-article-published-at-jdj.html</link>
         <guid isPermaLink="true">https://scott.cranton.com/i-got-article-published-at-jdj.html</guid>
-        
-        
-      </item>
-    
-      <item>
-        <title>ServiceMix 4 Example Project</title>
-        <description>I've just pushed a new version of the &quot;Getting Started with ServiceMix 4&quot; example &lt;a href=&quot;http://fusesource.com/resources/video-archived-webinars/&quot;&gt;webinar&lt;/a&gt; project to GitHub (https://github.com/scranton/servicemix4-example-payment-service). My goal is that this example shows best practices for creating ServiceMix 4 projects with Camel. I'm also experimenting with GitHub…&lt;br /&gt;&lt;br /&gt;This project is an example of using OSGi, Camel, and ServiceMix together, specifically ServiceMix 4's NMR component. A number of things are shown within this project:&lt;br /&gt; * use of the Camel-NMR component for inter OSGi bundle communication&lt;br /&gt; * dynamic routing combining Camel's recipient list and the OSGi Service Registry&lt;br /&gt; * use of Camel's Content Based Router&lt;br /&gt; * multiple front-end proxies (WS and batch file)&lt;br /&gt; * bridging one way (fire and forget) messaging with request-response&lt;br /&gt; * and much more...&lt;br /&gt;&lt;br /&gt;The scenario is a payment transfer service where transfer requests can be made either through a WS (SOAP/HTTP) interface or through batch files. These transfer requests are routed to banking services that can come and go at runtime (i.e. new banks can be added and removed at runtime).&lt;br /&gt;&lt;br /&gt;This solution is a bit over-engineered, but the goal of this effort is to provide examples of best practices in creating applications using these technologies.&lt;br /&gt;&lt;br /&gt;My plan is over the next few days to post some blog entries on aspects of this project to explain things like: how to communicate between OSGi bundles with Camel, dynamic routing to OSGi bundles that are deployed at runtime, etc. Ultimately I'll get to updating the webinar to talk through this updated code.&lt;br /&gt;&lt;br /&gt;I'd suggest downloading the 1.0.0 version of this project (https://github.com/scranton/servicemix4-example-payment-service/archives/payment-service-1.0.0) and give it a try with ServiceMix 4.3.0-fuse-02-00 (http://fusesource.com/downloads/). Please feel free to submit ideas for how I could enhance this example; I'm thinking adding in transaction support spanning two bank services would be cool, for example.</description>
-        <pubDate>Mon, 15 Nov 2010 14:24:00 -0500</pubDate>
-        <link>https://scott.cranton.com/servicemix-4-example-project.html</link>
-        <guid isPermaLink="true">https://scott.cranton.com/servicemix-4-example-project.html</guid>
         
         
       </item>

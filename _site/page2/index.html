@@ -168,6 +168,10 @@
             
                 
             
+                
+            
+                
+            
         </div>
         
     
@@ -198,6 +202,38 @@
 
 
                 
+<article class="post" role="article" itemscope itemtype="http://schema.org/BlogPosting">
+    <header class="post-header">
+        <ul>
+            <li><time datetime="2010-11-15T14:24:00-05:00" itemprop="datePublished">15 Nov, 2010</time></li>
+            
+        </ul>
+        <h2 itemprop="name headline"><a href="https://scott.cranton.com/servicemix-4-example-project.html">ServiceMix 4 Example Project</a></h2>
+    </header>
+
+    <div class="post-content">
+        I've just pushed a new version of the "Getting Started with ServiceMix 4" example <a href="http://fusesource.com/resources/video-archived-webinars/">webinar</a> project to GitHub (https://github.com/scranton/servicemix4-example-payment-service). My goal is that this example shows best practices for creating ServiceMix 4 projects with Camel. I'm also experimenting with GitHub…<br /><br />This project is an example of using OSGi, Camel, and ServiceMix together, specifically ServiceMix 4's NMR component. A number of things are shown within this project:<br /> * use of the Camel-NMR component for inter OSGi bundle communication<br /> * dynamic routing combining Camel's recipient list and the OSGi Service Registry<br /> * use of Camel's Content Based Router<br /> * multiple front-end proxies (WS and batch file)<br /> * bridging one way (fire and forget) messaging with request-response<br /> * and much more...<br /><br />The scenario is a payment transfer service where transfer requests can be made either through a WS (SOAP/HTTP) interface or through batch files. These transfer requests are routed to banking services that can come and go at runtime (i.e. new banks can be added and removed at runtime).<br /><br />This solution is a bit over-engineered, but the goal of this effort is to provide examples of best practices in creating applications using these technologies.<br /><br />My plan is over the next few days to post some blog entries on aspects of this project to explain things like: how to communicate between OSGi bundles with Camel, dynamic routing to OSGi bundles that are deployed at runtime, etc. Ultimately I'll get to updating the webinar to talk through this updated code.<br /><br />I'd suggest downloading the 1.0.0 version of this project (https://github.com/scranton/servicemix4-example-payment-service/archives/payment-service-1.0.0) and give it a try with ServiceMix 4.3.0-fuse-02-00 (http://fusesource.com/downloads/). Please feel free to submit ideas for how I could enhance this example; I'm thinking adding in transaction support spanning two bank services would be cool, for example.
+
+        
+    </div>
+
+    <footer class="post-footer">
+        <div class="share">Share
+            <ul class="social-networks">
+                <li class="share-facebook"><a href="https://www.facebook.com/sharer.php?s=100&p[title]=ServiceMix 4 Example Project&p[summary]=&p[url]=https://scott.cranton.com/servicemix-4-example-project.html" class="s_facebook" target="_blank" onclick="window.open(this.href, '','width=700,height=300');return false;"><svg title="" width="16" height="16"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://scott.cranton.com/assets/svg/social-icons.svg#facebook-icon"></use></svg></a></a></li>
+                <li class="share-twitter"><a href="http://twitter.com/share?url=https://scott.cranton.com/servicemix-4-example-project.html&text=&hashtags=" rel="noreferrer" target="_blank" onclick="window.open(this.href, '','width=700,height=300');return false;"><svg title="" width="16" height="16"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://scott.cranton.com/assets/svg/social-icons.svg#twitter-icon"></use></svg></a></li>
+            </ul>
+        </div>
+        
+        <div class="tags">
+            <ul>
+                
+            </ul>
+        </div>
+        
+    </footer>
+</article>
+
 <article class="post" role="article" itemscope itemtype="http://schema.org/BlogPosting">
     <header class="post-header">
         <ul>
