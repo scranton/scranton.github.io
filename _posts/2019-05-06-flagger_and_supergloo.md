@@ -1,8 +1,8 @@
 ---
 layout: post
-title: SuperGloo to the Rescue! Making it easier to write applications for Service Meshes.
+title: SuperGloo to the Rescue! Making it easier to write extensions for Service Meshes.
 date: 2019-05-06T17:51:24Z
-description: How SuperGloo abstracts Service Meshes to allow applications to run on one or more Service Meshes like a superhero.
+description: How SuperGloo abstracts Service Meshes to allow extensions to run on one or more Service Meshes like a superhero.
 tags:
 - SuperGloo
 - Service Mesh
@@ -50,7 +50,7 @@ do not require all of the power, and weight, of full service mesh implementation
 * [Automating your Services with Knative and Solo.io Gloo]({{ site.baseurl }}{% post_url 2019-04-02-knative-and-gloo %})
 * [Jenkins X Serverless Apps](https://jenkins-x.io/developing/knative/)
 
-This article quickly runs through setting up the Flagger `podinfo` example application on SuperGloo with Istio so
+This article quickly runs through setting up the Flagger `podinfo` example extension on SuperGloo with Istio so
 you all can see what's involved and try yourselves if you like.
 
 ## Install Kubernetes and Helm
@@ -167,7 +167,7 @@ SuperGloo you'd either need to learn how to install all of Istio yourself or be 
 App Mesh installation from GKE or AWS respectively. Those are good managed offerings, but they do limit your choices
 to the versions and configurations they currently support.
 
-SuperGloo provides a great abstraction and management layer to help applications leverage one or more Service Meshes
+SuperGloo provides a great abstraction and management layer to help extensions leverage one or more Service Meshes
 without needing to get deep into the weeds of the huge API surface area of any one of the meshes like Istio or
 App Mesh. SuperGloo makes it easy for applications to use just what they need of the underlying meshes. That helps
 with adoption on Service Meshes based on the feedback I've heard, that is, many are currently experimenting with
