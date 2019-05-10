@@ -5,12 +5,12 @@
     <description>I lead Customer Success at Solo.io. I enjoy hacking tech, and writing about it.</description>
     <link>https://scott.cranton.com/</link>
     <atom:link href="https://scott.cranton.com/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Mon, 06 May 2019 19:51:32 -0400</pubDate>
-    <lastBuildDate>Mon, 06 May 2019 19:51:32 -0400</lastBuildDate>
+    <pubDate>Fri, 10 May 2019 11:27:51 -0400</pubDate>
+    <lastBuildDate>Fri, 10 May 2019 11:27:51 -0400</lastBuildDate>
     <generator>Jekyll v3.8.5</generator>
     
       <item>
-        <title>SuperGloo to the Rescue! Making it easier to write applications for Service Meshes.</title>
+        <title>SuperGloo to the Rescue! Making it easier to write extensions for Service Meshes.</title>
         <description>&lt;p&gt;&lt;img src=&quot;/assets/supergloo.png&quot; alt=&quot;SuperGloo&quot; title=&quot;SuperGloo&quot; style=&quot;width:50%;&quot; /&gt;&lt;/p&gt;
 
 &lt;!--
@@ -54,7 +54,7 @@ do not require all of the power, and weight, of full service mesh implementation
   &lt;li&gt;&lt;a href=&quot;https://jenkins-x.io/developing/knative/&quot;&gt;Jenkins X Serverless Apps&lt;/a&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;p&gt;This article quickly runs through setting up the Flagger &lt;code class=&quot;highlighter-rouge&quot;&gt;podinfo&lt;/code&gt; example application on SuperGloo with Istio so
+&lt;p&gt;This article quickly runs through setting up the Flagger &lt;code class=&quot;highlighter-rouge&quot;&gt;podinfo&lt;/code&gt; example extension on SuperGloo with Istio so
 you all can see what’s involved and try yourselves if you like.&lt;/p&gt;
 
 &lt;h2 id=&quot;install-kubernetes-and-helm&quot;&gt;Install Kubernetes and Helm&lt;/h2&gt;
@@ -194,7 +194,7 @@ SuperGloo you’d either need to learn how to install all of Istio yourself or b
 App Mesh installation from GKE or AWS respectively. Those are good managed offerings, but they do limit your choices
 to the versions and configurations they currently support.&lt;/p&gt;
 
-&lt;p&gt;SuperGloo provides a great abstraction and management layer to help applications leverage one or more Service Meshes
+&lt;p&gt;SuperGloo provides a great abstraction and management layer to help extensions leverage one or more Service Meshes
 without needing to get deep into the weeds of the huge API surface area of any one of the meshes like Istio or
 App Mesh. SuperGloo makes it easy for applications to use just what they need of the underlying meshes. That helps
 with adoption on Service Meshes based on the feedback I’ve heard, that is, many are currently experimenting with
